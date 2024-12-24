@@ -3,12 +3,14 @@ import pandas as pd
 import json
 from jinja2 import Template
 
-def extract_country_from_path(file_path):
-    """경로에서 국가 코드를 추출합니다."""
-    parts = file_path.split(os.sep)
-    if len(parts) > 1:
-        return parts[-4]  # 국가 코드 추출
-    return "unknown"
+def extract_country_from_filename(file_name):
+    """파일 이름에서 국가 코드를 추출합니다.
+    파일 형식 예: regional-au-weekly-2023-06-15.csv
+    """
+    parts = file_name.split('-')  # 파일 이름을 '-'로 나눕니다.
+    if len(parts) > 1:  # 국가 코드가 존재하는지 확인
+        return parts[1].upper()  # 두 번째 부분이 국가 코드 (소문자를 대문자로 변환)
+    return "UNKNOWN"  # 추출할 수 없는 경우 기본값
 
 def save_as_json(dataframe, file_path):
     """DataFrame을 JSON 파일로 저장합니다."""
@@ -83,7 +85,8 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
 
     # CSV 파일 읽어서 국가별로 분류
     for file_path in csv_files:
-        country = extract_country_from_path(file_path)
+        file_name = os.path.basename(file_path)  # 파일 이름 추출
+        country = extract_country_from_filename(file_name)  # 파일 이름에서 국가 코드 추출
         df = pd.read_csv(file_path)
 
         if country not in country_data:
@@ -110,7 +113,6 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
 
     # 최종 병합
     merged_data = pd.concat(country_data.values(), ignore_index=True)
-    merged_data['country'] = merged_data.apply(lambda row: extract_country_from_path(row['uri']), axis=1)
     final_csv = os.path.join(final_output_folder, "final_merged_data.csv")
     final_json = os.path.join(final_output_folder, "final_merged_data.json")
     final_html = os.path.join(final_output_folder, "final_merged_data.html")
