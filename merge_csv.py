@@ -54,7 +54,7 @@ def analyze_top_tracks(data):
     - 국가별로 곡 이름과 아티스트별 스트리밍 합계를 계산합니다.
     - 스트리밍 합계 기준으로 정렬 후, 국가별 상위 10곡을 추출합니다.
     """
-    top_tracks = data.groupby(['country', 'track_name', 'artist_name'])['streams'].sum().reset_index()
+    top_tracks = data.groupby(['country', 'track_name', 'artist_names'])['streams'].sum().reset_index()
     top_tracks = top_tracks.sort_values(['country', 'streams'], ascending=[True, False])
     return top_tracks.groupby('country').head(10)
 
@@ -64,10 +64,11 @@ def detect_rising_trends(data):
     - 최근 주차 데이터(weeks_on_chart <= 4)를 필터링합니다.
     - 이전 랭크 대비 상승폭('rank_change')을 계산하고 정렬합니다.
     """
+    data['rank_change'] = data['previous_rank'] - data['rank']
     recent_data = data[data['weeks_on_chart'] <= 4]
-    recent_data['rank_change'] = recent_data['previous_rank'] - recent_data['rank']
     rising_trends = recent_data.sort_values(['country', 'rank_change'], ascending=[True, False])
-    return rising_trends.groupby('country').head(10)
+    rising_trends['rank_change_absolute'] = rising_trends['rank_change'].abs()  # 상승폭 절대값 추가
+    return rising_trends[['country', 'track_name', 'artist_names', 'rank', 'previous_rank', 'rank_change', 'rank_change_absolute']].groupby('country').head(10)
 
 # 차트 롱런 곡 분석
 def analyze_longevity(data):
@@ -75,9 +76,10 @@ def analyze_longevity(data):
     - 곡 이름과 아티스트별로 차트에 머문 주 수 합계를 계산합니다.
     - 주 수 기준으로 정렬 후, 국가별 상위 10곡을 추출합니다.
     """
-    longevity = data.groupby(['country', 'track_name', 'artist_name'])['weeks_on_chart'].sum().reset_index()
+    longevity = data.groupby(['country', 'track_name', 'artist_names'])['weeks_on_chart'].sum().reset_index()
     longevity = longevity.sort_values(['country', 'weeks_on_chart'], ascending=[True, False])
-    return longevity.groupby('country').head(10)
+    longevity['total_weeks'] = longevity['weeks_on_chart']  # 머문 총 주 수 컬럼 추가
+    return longevity[['country', 'track_name', 'artist_names', 'weeks_on_chart', 'total_weeks']].groupby('country').head(10)
 
 # 국가별 스트리밍 분포 분석
 def analyze_streams_distribution(data):
@@ -101,9 +103,6 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
             if file.endswith('.csv'):
                 csv_files.append(os.path.join(root, file))
 
-    # 필요한 열 정의
-    required_columns = ['rank', 'track_name', 'artist_name', 'streams', 'weeks_on_chart', 'previous_rank', 'country']
-
     # 국가별 데이터 병합
     country_data = {}
     for file_path in csv_files:
@@ -111,10 +110,12 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
         country = extract_country_from_filename(file_name)
         df = pd.read_csv(file_path)
 
-        # 누락된 열 처리
-        for column in required_columns:
-            if column not in df.columns:
-                df[column] = None  # 기본값 추가
+        # 필요한 열이 모두 있는지 확인
+        required_columns = ['rank', 'uri', 'artist_names', 'track_name', 'source', 
+                            'peak_rank', 'previous_rank', 'weeks_on_chart', 'streams']
+        for col in required_columns:
+            if col not in df.columns:
+                df[col] = None  # 누락된 열 추가
 
         df['country'] = country
         if country not in country_data:
