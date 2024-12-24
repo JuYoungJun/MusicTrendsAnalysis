@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>데이터 인사이트</title>
+    <title>데이터 분석 인사이트</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -21,7 +22,7 @@
         section {
             padding: 20px;
             margin: 20px auto;
-            max-width: 800px;
+            max-width: 900px;
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -44,100 +45,87 @@
 </head>
 <body>
     <header>
-        <h1>데이터 인사이트</h1>
+        <h1>데이터 분석 인사이트</h1>
     </header>
 
-    <section id="longevity-insights">
+    <!-- Longevity 데이터 인사이트 -->
+    <section>
         <h2>1. Longevity 데이터</h2>
-        <p>다음은 평균 스트림 수가 높은 곡 상위 5개입니다:</p>
-        <ul id="longevity-list"></ul>
+        <p>평균 스트림 수가 높은 상위 5곡:</p>
+        <ul id="longevity-insights"></ul>
     </section>
 
-    <section id="rising-trends-insights">
+    <!-- Rising Trends 데이터 인사이트 -->
+    <section>
         <h2>2. Rising Trends 데이터</h2>
-        <p>다음은 성장률과 랭크 변동이 큰 상위 5개 곡입니다:</p>
-        <ul id="rising-trends-list"></ul>
+        <p>스트림 성장률이 높은 상위 5곡:</p>
+        <ul id="rising-trends-insights"></ul>
     </section>
 
-    <section id="streams-distribution-insights">
+    <!-- Streams Distribution 데이터 인사이트 -->
+    <section>
         <h2>3. Streams Distribution 데이터</h2>
-        <p>상위 10곡 점유율이 높은 상위 5개 국가는:</p>
-        <ul id="streams-distribution-list"></ul>
+        <p>상위 10곡 점유율이 높은 국가 상위 5개:</p>
+        <ul id="streams-distribution-insights"></ul>
     </section>
 
-    <section id="top-tracks-insights">
+    <!-- Top Tracks 데이터 인사이트 -->
+    <section>
         <h2>4. Top Tracks 데이터</h2>
-        <p>총 스트림 수가 높은 곡 상위 5개는 다음과 같습니다:</p>
-        <ul id="top-tracks-list"></ul>
+        <p>총 스트림 수가 높은 상위 5곡:</p>
+        <ul id="top-tracks-insights"></ul>
     </section>
 
+    <!-- D3.js Scripts -->
     <script>
-        // CSV 데이터 로드 함수
+        // Helper function to load CSV
         async function loadCSV(filePath) {
             const response = await fetch(filePath);
-            const data = await response.text();
-            const rows = data.split('\n').map(row => row.split(','));
-            return rows;
+            const text = await response.text();
+            return d3.csvParse(text);
         }
 
         // Longevity 데이터 인사이트
-        loadCSV('final_data/longevity.csv').then(rows => {
-            const topTracks = rows.slice(1, 6).map(row => ({
-                name: row[1], // track_name
-                avgStreams: parseFloat(row[5]) // avg_streams_per_week
-            }));
-
-            const longevityList = document.getElementById('longevity-list');
-            topTracks.forEach(track => {
+        loadCSV('final_data/longevity_top10.csv').then(data => {
+            const insights = data.slice(0, 5); // 상위 5개
+            const list = document.getElementById('longevity-insights');
+            insights.forEach(item => {
                 const li = document.createElement('li');
-                li.textContent = `${track.name}: 평균 스트림 수 ${track.avgStreams.toLocaleString()}회`;
-                longevityList.appendChild(li);
+                li.textContent = `${item.track_name}: 평균 스트림 수 ${parseInt(item.avg_streams_per_week).toLocaleString()}회`;
+                list.appendChild(li);
             });
         });
 
         // Rising Trends 데이터 인사이트
-        loadCSV('final_data/rising_trends.csv').then(rows => {
-            const topGrowthTracks = rows.slice(1, 6).map(row => ({
-                name: row[2], // track_name
-                growthRate: parseFloat(row[10]), // stream_growth_rate
-                rankChange: parseInt(row[9]) // rank_change
-            }));
-
-            const risingTrendsList = document.getElementById('rising-trends-list');
-            topGrowthTracks.forEach(track => {
+        loadCSV('final_data/rising_trends_top10.csv').then(data => {
+            const insights = data.slice(0, 5); // 상위 5개
+            const list = document.getElementById('rising-trends-insights');
+            insights.forEach(item => {
                 const li = document.createElement('li');
-                li.textContent = `${track.name}: 성장률 ${track.growthRate}, 랭크 변동 ${track.rankChange}`;
-                risingTrendsList.appendChild(li);
+                li.textContent = `${item.track_name}: 성장률 ${item.stream_growth_rate}, 랭크 변화 ${item.rank_change}`;
+                list.appendChild(li);
             });
         });
 
         // Streams Distribution 데이터 인사이트
-        loadCSV('final_data/streams_distribution.csv').then(rows => {
-            const topCountries = rows.slice(1, 6).map(row => ({
-                country: row[0], // country
-                top10Share: parseFloat(row[5]) // top_10_share
-            }));
-
-            const streamsDistributionList = document.getElementById('streams-distribution-list');
-            topCountries.forEach(country => {
+        loadCSV('final_data/streams_distribution_top5.csv').then(data => {
+            const insights = data.slice(0, 5); // 상위 5개
+            const list = document.getElementById('streams-distribution-insights');
+            insights.forEach(item => {
                 const li = document.createElement('li');
-                li.textContent = `${country.country}: 상위 10곡 점유율 ${country.top10Share}%`;
-                streamsDistributionList.appendChild(li);
+                li.textContent = `${item.country}: 상위 10곡 점유율 ${item.top_10_share}%`;
+                list.appendChild(li);
             });
         });
 
         // Top Tracks 데이터 인사이트
-        loadCSV('final_data/top_tracks.csv').then(rows => {
-            const topTracks = rows.slice(1, 6).map(row => ({
-                name: row[1], // track_name
-                totalStreams: parseFloat(row[4]) // total_streams
-            }));
-
-            const topTracksList = document.getElementById('top-tracks-list');
-            topTracks.forEach(track => {
+        loadCSV('final_data/top_tracks_top10.csv').then(data => {
+            const insights = data.slice(0, 5); // 상위 5개
+            const list = document.getElementById('top-tracks-insights');
+            insights.forEach(item => {
                 const li = document.createElement('li');
-                li.textContent = `${track.name}: 총 스트림 수 ${track.totalStreams.toLocaleString()}회`;
-                topTracksList.appendChild(li);
+                li.textContent = `${item.track_name}: 총 스트림 수 ${parseInt(item.total_streams).toLocaleString()}회`;
+                list.appendChild(li);
             });
         });
     </script>
