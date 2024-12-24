@@ -37,10 +37,12 @@ jobs:
 
       # 디버깅: GIT_TOKEN 확인
       - name: Debug Token
+        env:
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
         run: |
-          echo "Token length: ${#secrets.GIT_TOKEN}"
-          echo "Token starts with: ${secrets.GIT_TOKEN:0:4}"
-          echo "Token ends with: ${secrets.GIT_TOKEN: -4}"
+          echo "Token length: ${#GIT_TOKEN}"
+          echo "Token starts with: ${GIT_TOKEN:0:4}"
+          echo "Token ends with: ${GIT_TOKEN: -4}"
 
       # 병합 스크립트 실행
       - name: Run merge script
