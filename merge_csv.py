@@ -12,6 +12,17 @@ def extract_country_from_filename(file_name):
         return parts[1].upper()
     return "UNKNOWN"
 
+# 파일 이름에서 날짜 추출
+def extract_date_from_filename(file_name):
+    """
+    파일 이름에서 날짜를 추출합니다.
+    예: regional-au-weekly-2023-06-15.csv -> 2023-06-15
+    """
+    parts = file_name.split('-')
+    if len(parts) > 3:
+        return parts[-1].split('.')[0]
+    return "UNKNOWN"
+
 # 국가별 상위 스트리밍 곡 분석
 def analyze_top_tracks(data):
     """
@@ -27,7 +38,7 @@ def analyze_top_tracks(data):
       - 국가별 가장 인기 있는 곡과 아티스트를 확인할 수 있습니다.
       - 마케팅 캠페인에서 특정 국가의 선호 곡이나 장르를 분석하는 데 유용합니다.
     """
-    top_tracks = data.groupby(['country', 'track_name', 'artist_names']).agg(
+    top_tracks = data.groupby(['country', 'track_name', 'artist_names', 'date']).agg(
         total_streams=('streams', 'sum'),
         peak_rank=('peak_rank', 'min'),
         avg_streams=('streams', 'mean')
@@ -35,7 +46,7 @@ def analyze_top_tracks(data):
     top_tracks = top_tracks.sort_values(['country', 'total_streams'], ascending=[True, False])
     top_tracks['total_streams'] = top_tracks['total_streams'].round(2)
     top_tracks['avg_streams'] = top_tracks['avg_streams'].round(2)
-    return top_tracks.groupby('country').head(10)
+    return top_tracks.groupby(['country', 'date']).head(10)
 
 # 최근 차트 상승 곡 분석
 def detect_rising_trends(data):
@@ -63,7 +74,7 @@ def detect_rising_trends(data):
     recent_data['stream_growth_rate'] = recent_data.groupby(['country', 'track_name', 'artist_names'])['streams'].pct_change().fillna(0)
     recent_data['stream_growth_rate'] = recent_data['stream_growth_rate'].round(2)
     rising_trends = recent_data.sort_values(['country', 'rank_change', 'stream_growth_rate'], ascending=[True, False, False])
-    return rising_trends.groupby('country').head(10)
+    return rising_trends.groupby(['country', 'date']).head(10)
 
 # 차트 롱런 곡 분석
 def analyze_longevity(data):
@@ -85,7 +96,7 @@ def analyze_longevity(data):
       - 장기적으로 꾸준히 스트리밍되는 곡을 식별하는 데 유용합니다.
       - 예: 주당 평균 5000 스트리밍.
     """
-    longevity = data.groupby(['country', 'track_name', 'artist_names']).agg(
+    longevity = data.groupby(['country', 'track_name', 'artist_names', 'date']).agg(
         total_weeks=('weeks_on_chart', 'sum'),
         total_streams=('streams', 'sum'),
         avg_streams_per_week=('streams', 'mean')
@@ -93,7 +104,7 @@ def analyze_longevity(data):
     longevity = longevity.sort_values(['country', 'total_weeks'], ascending=[True, False])
     longevity['total_streams'] = longevity['total_streams'].round(2)
     longevity['avg_streams_per_week'] = longevity['avg_streams_per_week'].round(2)
-    return longevity.groupby('country').head(10)
+    return longevity.groupby(['country', 'date']).head(10)
 
 # 국가별 스트리밍 분포 분석
 def analyze_streams_distribution(data):
@@ -113,17 +124,17 @@ def analyze_streams_distribution(data):
       - 해당 국가의 상위 10위 곡이 전체 스트리밍에서 차지하는 비율을 나타냅니다.
       - 예: 50%는 상위 10곡이 전체 스트리밍의 절반을 차지함을 의미합니다.
     """
-    streams_summary = data.groupby('country').agg(
+    streams_summary = data.groupby(['country', 'date']).agg(
         total_streams=('streams', 'sum')
     ).reset_index()
-    top_10_streams = data[data['rank'] <= 10].groupby('country').agg(
+    top_10_streams = data[data['rank'] <= 10].groupby(['country', 'date']).agg(
         top_10_streams=('streams', 'sum')
     ).reset_index()
-    top_10_tracks = data[data['rank'] <= 10].groupby('country').agg(
+    top_10_tracks = data[data['rank'] <= 10].groupby(['country', 'date']).agg(
         tracks=('track_name', lambda x: ', '.join(x))
     ).reset_index().rename(columns={'tracks': 'top_10_tracks'})
-    distribution = pd.merge(streams_summary, top_10_streams, on='country', how='left')
-    distribution = pd.merge(distribution, top_10_tracks, on='country', how='left')
+    distribution = pd.merge(streams_summary, top_10_streams, on=['country', 'date'], how='left')
+    distribution = pd.merge(distribution, top_10_tracks, on=['country', 'date'], how='left')
     distribution['top_10_share'] = (distribution['top_10_streams'] / distribution['total_streams']).fillna(0)
     distribution['top_10_share'] = (distribution['top_10_share'] * 100).round(2)
     distribution['total_streams'] = distribution['total_streams'].round(2)
@@ -148,8 +159,10 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
     for file_path in csv_files:
         file_name = os.path.basename(file_path)
         country = extract_country_from_filename(file_name)
+        date = extract_date_from_filename(file_name)
         df = pd.read_csv(file_path)
         df['country'] = country
+        df['date'] = date
 
         if country not in country_data:
             country_data[country] = df
