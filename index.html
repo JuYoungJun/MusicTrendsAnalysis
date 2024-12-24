@@ -4,39 +4,93 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>데이터 시각화 및 다운로드</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            background-color: #f9f9f9;
+        }
+        header {
+            background-color: #007BFF;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        section {
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 900px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #007BFF;
+        }
+        .chart {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .tooltip {
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 5px;
+            font-size: 12px;
+            display: none;
+            pointer-events: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+    </style>
 </head>
 <body>
-    <h1>데이터 시각화 및 CSV 다운로드</h1>
+    <header>
+        <h1>데이터 시각화 및 CSV 다운로드</h1>
+    </header>
 
     <!-- 인사이트 페이지로 이동 -->
     <section>
         <h2>데이터 분석 인사이트 보기</h2>
         <p>데이터 분석 결과와 주요 인사이트를 보려면 아래 버튼을 클릭하세요.</p>
-        <a href="insights.html" style="display: inline-block; padding: 10px 20px; background-color: #007BFF; color: white; text-decoration: none; border-radius: 5px;">
-            인사이트 페이지로 이동
-        </a>
+        <a href="insights.html" class="btn">인사이트 페이지로 이동</a>
     </section>
 
     <!-- 데이터 시각화 -->
     <section>
-        <h2>1. Longevity 데이터 시각화</h2>
-        <canvas id="longevityChart"></canvas>
+        <h2>1. Longevity 데이터 - 평균 스트림 수</h2>
+        <div id="longevity-chart" class="chart"></div>
     </section>
 
     <section>
-        <h2>2. Rising Trends 데이터 시각화</h2>
-        <canvas id="risingTrendsChart"></canvas>
+        <h2>2. Rising Trends 데이터 - 성장률</h2>
+        <div id="rising-trends-chart" class="chart"></div>
     </section>
 
     <section>
-        <h2>3. Streams Distribution 데이터 시각화</h2>
-        <canvas id="streamsDistributionChart"></canvas>
+        <h2>3. Streams Distribution 데이터 - 상위 10곡 점유율</h2>
+        <div id="streams-distribution-chart" class="chart"></div>
     </section>
 
     <section>
-        <h2>4. Top Tracks 데이터 시각화</h2>
-        <canvas id="topTracksChart"></canvas>
+        <h2>4. Top Tracks 데이터 - 총 스트림 수</h2>
+        <div id="top-tracks-chart" class="chart"></div>
     </section>
 
     <!-- CSV 다운로드 -->
@@ -50,103 +104,179 @@
         </ul>
     </section>
 
+    <!-- D3.js Scripts -->
     <script>
-        // CSV 데이터 로드 함수
+        // Helper function to load CSV data
         async function loadCSV(filePath) {
             const response = await fetch(filePath);
-            const data = await response.text();
-            const rows = data.split('\n').map(row => row.split(','));
-            return rows;
+            const text = await response.text();
+            return d3.csvParse(text);
         }
 
         // Longevity 데이터 시각화
-        loadCSV('final_data/longevity.csv').then(rows => {
-            const labels = rows.slice(1).map(row => row[1]); // track_name
-            const avgStreams = rows.slice(1).map(row => parseFloat(row[5])); // avg_streams_per_week
+        loadCSV('final_data/longevity.csv').then(data => {
+            const top10 = data.slice(0, 10);
+            const svgWidth = 800;
+            const svgHeight = 400;
 
-            const ctx = document.getElementById('longevityChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels.slice(0, 10), // Top 10만 시각화
-                    datasets: [{
-                        label: '평균 스트림 수',
-                        data: avgStreams.slice(0, 10),
-                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 1
-                    }]
-                }
-            });
+            const svg = d3.select('#longevity-chart')
+                .append('svg')
+                .attr('width', svgWidth)
+                .attr('height', svgHeight);
+
+            const xScale = d3.scaleBand()
+                .domain(top10.map(d => d.track_name))
+                .range([0, svgWidth])
+                .padding(0.2);
+
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(top10, d => +d.avg_streams_per_week)])
+                .nice()
+                .range([svgHeight - 40, 20]);
+
+            svg.selectAll('.bar')
+                .data(top10)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('x', d => xScale(d.track_name))
+                .attr('y', d => yScale(+d.avg_streams_per_week))
+                .attr('width', xScale.bandwidth())
+                .attr('height', d => svgHeight - 40 - yScale(+d.avg_streams_per_week))
+                .attr('fill', '#007BFF');
+
+            svg.append('g')
+                .attr('transform', `translate(0, ${svgHeight - 40})`)
+                .call(d3.axisBottom(xScale))
+                .selectAll('text')
+                .attr('transform', 'rotate(-45)')
+                .style('text-anchor', 'end');
+
+            svg.append('g')
+                .attr('transform', 'translate(0, 0)')
+                .call(d3.axisLeft(yScale));
         });
 
         // Rising Trends 데이터 시각화
-        loadCSV('final_data/rising_trends.csv').then(rows => {
-            const labels = rows.slice(1).map(row => row[2]); // track_name
-            const streamGrowth = rows.slice(1).map(row => parseFloat(row[10])); // stream_growth_rate
+        loadCSV('final_data/rising_trends.csv').then(data => {
+            const top10 = data.slice(0, 10);
+            const svgWidth = 800;
+            const svgHeight = 400;
 
-            const ctx = document.getElementById('risingTrendsChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels.slice(0, 10),
-                    datasets: [{
-                        label: '스트림 성장률',
-                        data: streamGrowth.slice(0, 10),
-                        borderColor: 'rgba(153, 102, 255, 1)',
-                        borderWidth: 2,
-                        fill: false
-                    }]
-                }
-            });
+            const svg = d3.select('#rising-trends-chart')
+                .append('svg')
+                .attr('width', svgWidth)
+                .attr('height', svgHeight);
+
+            const xScale = d3.scaleBand()
+                .domain(top10.map(d => d.track_name))
+                .range([0, svgWidth])
+                .padding(0.2);
+
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(top10, d => +d.stream_growth_rate)])
+                .nice()
+                .range([svgHeight - 40, 20]);
+
+            svg.selectAll('.bar')
+                .data(top10)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('x', d => xScale(d.track_name))
+                .attr('y', d => yScale(+d.stream_growth_rate))
+                .attr('width', xScale.bandwidth())
+                .attr('height', d => svgHeight - 40 - yScale(+d.stream_growth_rate))
+                .attr('fill', '#28A745');
+
+            svg.append('g')
+                .attr('transform', `translate(0, ${svgHeight - 40})`)
+                .call(d3.axisBottom(xScale))
+                .selectAll('text')
+                .attr('transform', 'rotate(-45)')
+                .style('text-anchor', 'end');
+
+            svg.append('g')
+                .attr('transform', 'translate(0, 0)')
+                .call(d3.axisLeft(yScale));
         });
 
         // Streams Distribution 데이터 시각화
-        loadCSV('final_data/streams_distribution.csv').then(rows => {
-            const labels = rows.slice(1).map(row => row[0]); // country
-            const top10Share = rows.slice(1).map(row => parseFloat(row[5])); // top_10_share
+        loadCSV('final_data/streams_distribution.csv').then(data => {
+            const top5 = data.slice(0, 5);
+            const svgWidth = 400;
+            const svgHeight = 400;
 
-            const ctx = document.getElementById('streamsDistributionChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: '상위 10곡 점유율',
-                        data: top10Share,
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.6)',
-                            'rgba(54, 162, 235, 0.6)',
-                            'rgba(255, 206, 86, 0.6)',
-                            'rgba(75, 192, 192, 0.6)',
-                            'rgba(153, 102, 255, 0.6)'
-                        ],
-                        borderColor: 'rgba(255, 255, 255, 1)',
-                        borderWidth: 1
-                    }]
-                }
+            const svg = d3.select('#streams-distribution-chart')
+                .append('svg')
+                .attr('width', svgWidth)
+                .attr('height', svgHeight);
+
+            const radius = Math.min(svgWidth, svgHeight) / 2;
+            const g = svg.append('g').attr('transform', `translate(${radius}, ${radius})`);
+
+            const pie = d3.pie().value(d => +d.top_10_share);
+            const arc = d3.arc().innerRadius(0).outerRadius(radius);
+
+            g.selectAll('path')
+                .data(pie(top5))
+                .enter()
+                .append('path')
+                .attr('d', arc)
+                .attr('fill', (d, i) => d3.schemeCategory10[i]);
+
+            const legend = svg.append('g').attr('transform', `translate(${radius * 2}, 10)`);
+
+            top5.forEach((d, i) => {
+                legend.append('text')
+                    .attr('y', i * 20)
+                    .text(`${d.country}: ${d.top_10_share}%`)
+                    .attr('fill', d3.schemeCategory10[i]);
             });
         });
 
         // Top Tracks 데이터 시각화
-        loadCSV('final_data/top_tracks.csv').then(rows => {
-            const labels = rows.slice(1).map(row => row[1]); // track_name
-            const totalStreams = rows.slice(1).map(row => parseFloat(row[4])); // total_streams
+        loadCSV('final_data/top_tracks.csv').then(data => {
+            const top10 = data.slice(0, 10);
+            const svgWidth = 800;
+            const svgHeight = 400;
 
-            const ctx = document.getElementById('topTracksChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'horizontalBar',
-                data: {
-                    labels: labels.slice(0, 10),
-                    datasets: [{
-                        label: '총 스트림 수',
-                        data: totalStreams.slice(0, 10),
-                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 1
-                    }]
-                }
-            });
+            const svg = d3.select('#top-tracks-chart')
+                .append('svg')
+                .attr('width', svgWidth)
+                .attr('height', svgHeight);
+
+            const xScale = d3.scaleBand()
+                .domain(top10.map(d => d.track_name))
+                .range([0, svgWidth])
+                .padding(0.2);
+
+            const yScale = d3.scaleLinear()
+                .domain([0, d3.max(top10, d => +d.total_streams)])
+                .nice()
+                .range([svgHeight - 40, 20]);
+
+            svg.selectAll('.bar')
+                .data(top10)
+                .enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .attr('x', d => xScale(d.track_name))
+                .attr('y', d => yScale(+d.total_streams))
+                .attr('width', xScale.bandwidth())
+                .attr('height', d => svgHeight - 40 - yScale(+d.total_streams))
+                .attr('fill', '#FFC107');
+
+            svg.append('g')
+                .attr('transform', `translate(0, ${svgHeight - 40})`)
+                .call(d3.axisBottom(xScale))
+                .selectAll('text')
+                .attr('transform', 'rotate(-45)')
+                .style('text-anchor', 'end');
+
+            svg.append('g')
+                .attr('transform', 'translate(0, 0)')
+                .call(d3.axisLeft(yScale));
         });
     </script>
 </body>
