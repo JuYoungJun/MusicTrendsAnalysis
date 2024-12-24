@@ -22,12 +22,19 @@ def analyze_top_tracks(data):
       * artist_names: 아티스트 이름
       * total_streams: 총 스트리밍 수
       * peak_rank: 최고 순위
+      * avg_streams: 평균 스트리밍 수
+    활용:
+      - 국가별 가장 인기 있는 곡과 아티스트를 확인할 수 있습니다.
+      - 마케팅 캠페인에서 특정 국가의 선호 곡이나 장르를 분석하는 데 유용합니다.
     """
     top_tracks = data.groupby(['country', 'track_name', 'artist_names']).agg(
         total_streams=('streams', 'sum'),
-        peak_rank=('peak_rank', 'min')
+        peak_rank=('peak_rank', 'min'),
+        avg_streams=('streams', 'mean')
     ).reset_index()
     top_tracks = top_tracks.sort_values(['country', 'total_streams'], ascending=[True, False])
+    top_tracks['total_streams'] = top_tracks['total_streams'].round(2)
+    top_tracks['avg_streams'] = top_tracks['avg_streams'].round(2)
     return top_tracks.groupby('country').head(10)
 
 # 최근 차트 상승 곡 분석
@@ -41,9 +48,16 @@ def detect_rising_trends(data):
       * rank_change: 순위 상승폭
       * previous_rank: 이전 주 순위
       * current_rank: 현재 주 순위
+      * stream_growth_rate: 스트리밍 성장률
+    활용:
+      - 새로운 트렌드를 발견하여 빠르게 대응할 수 있습니다.
+      - 신곡 마케팅 또는 빠르게 성장하는 장르를 분석하는 데 유용합니다.
     """
-    data['rank_change'] = data['previous_rank'] - data['rank']
-    rising_trends = data.sort_values(['country', 'rank_change'], ascending=[True, False])
+    recent_data = data[data['weeks_on_chart'] <= 4].copy()
+    recent_data['rank_change'] = recent_data['previous_rank'] - recent_data['rank']
+    recent_data['stream_growth_rate'] = recent_data.groupby(['country', 'track_name', 'artist_names'])['streams'].pct_change().fillna(0)
+    recent_data['stream_growth_rate'] = recent_data['stream_growth_rate'].round(2)
+    rising_trends = recent_data.sort_values(['country', 'rank_change', 'stream_growth_rate'], ascending=[True, False, False])
     return rising_trends.groupby('country').head(10)
 
 # 차트 롱런 곡 분석
@@ -56,12 +70,19 @@ def analyze_longevity(data):
       * artist_names: 아티스트 이름
       * total_weeks: 차트에 머문 총 주 수
       * total_streams: 총 스트리밍 수
+      * avg_streams_per_week: 주당 평균 스트리밍 수
+    활용:
+      - 장기적으로 인기를 끄는 곡이나 아티스트를 확인할 수 있습니다.
+      - 지속적인 관심을 받는 곡의 특성을 분석하는 데 유용합니다.
     """
     longevity = data.groupby(['country', 'track_name', 'artist_names']).agg(
         total_weeks=('weeks_on_chart', 'sum'),
-        total_streams=('streams', 'sum')
+        total_streams=('streams', 'sum'),
+        avg_streams_per_week=('streams', 'mean')
     ).reset_index()
     longevity = longevity.sort_values(['country', 'total_weeks'], ascending=[True, False])
+    longevity['total_streams'] = longevity['total_streams'].round(2)
+    longevity['avg_streams_per_week'] = longevity['avg_streams_per_week'].round(2)
     return longevity.groupby('country').head(10)
 
 # 국가별 스트리밍 분포 분석
@@ -73,6 +94,9 @@ def analyze_streams_distribution(data):
       * total_streams: 국가 전체 스트리밍 합계
       * top_10_streams: 상위 10위 곡의 총 스트리밍 수
       * top_10_share: 상위 10위 곡의 비율 (전체 대비 %)
+    활용:
+      - 특정 국가에서 상위 곡의 집중도를 확인할 수 있습니다.
+      - 음악 시장의 다양성을 평가하거나 상위 곡에 대한 의존도를 분석하는 데 유용합니다.
     """
     streams_summary = data.groupby('country').agg(
         total_streams=('streams', 'sum')
@@ -82,6 +106,9 @@ def analyze_streams_distribution(data):
     ).reset_index()
     distribution = pd.merge(streams_summary, top_10_streams, on='country', how='left')
     distribution['top_10_share'] = (distribution['top_10_streams'] / distribution['total_streams']).fillna(0)
+    distribution['top_10_share'] = (distribution['top_10_share'] * 100).round(2)
+    distribution['total_streams'] = distribution['total_streams'].round(2)
+    distribution['top_10_streams'] = distribution['top_10_streams'].round(2)
     return distribution
 
 # 데이터 병합 및 분석
