@@ -3,7 +3,7 @@ name: Merge Spotify Data
 on:
   push:
     paths:
-      - "spotify_data/**/*.csv"  # CSV 파일 변경 시 실행
+      - "spotify_data/**/*.csv"
   workflow_dispatch:
 
 jobs:
@@ -11,27 +11,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 리포지토리 체크아웃
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Python 환경 설정
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.9"
 
-      # 의존성 설치
       - name: Install dependencies
         run: |
           pip install pandas jinja2
 
-      # 병합 스크립트 실행
+      - name: Create required directories
+        run: |
+          mkdir -p country_data final_data
+
       - name: Run merge script
         run: |
           python merge_csv.py
 
-      # 병합 결과를 커밋 및 푸시
       - name: Commit and Push Changes
         run: |
           git config --global user.name "JuYoungJun"
