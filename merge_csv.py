@@ -101,12 +101,21 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
             if file.endswith('.csv'):
                 csv_files.append(os.path.join(root, file))
 
+    # 필요한 열 정의
+    required_columns = ['rank', 'track_name', 'artist_name', 'streams', 'weeks_on_chart', 'previous_rank', 'country']
+
     # 국가별 데이터 병합
     country_data = {}
     for file_path in csv_files:
         file_name = os.path.basename(file_path)
         country = extract_country_from_filename(file_name)
         df = pd.read_csv(file_path)
+
+        # 누락된 열 처리
+        for column in required_columns:
+            if column not in df.columns:
+                df[column] = None  # 기본값 추가
+
         df['country'] = country
         if country not in country_data:
             country_data[country] = df
