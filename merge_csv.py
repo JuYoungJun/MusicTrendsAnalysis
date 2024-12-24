@@ -94,6 +94,7 @@ def analyze_streams_distribution(data):
       * total_streams: 국가 전체 스트리밍 합계
       * top_10_streams: 상위 10위 곡의 총 스트리밍 수
       * top_10_share: 상위 10위 곡의 비율 (전체 대비 %)
+      * top_10_tracks: 상위 10위 곡 목록
     활용:
       - 특정 국가에서 상위 곡의 집중도를 확인할 수 있습니다.
       - 음악 시장의 다양성을 평가하거나 상위 곡에 대한 의존도를 분석하는 데 유용합니다.
@@ -104,7 +105,11 @@ def analyze_streams_distribution(data):
     top_10_streams = data[data['rank'] <= 10].groupby('country').agg(
         top_10_streams=('streams', 'sum')
     ).reset_index()
+    top_10_tracks = data[data['rank'] <= 10].groupby('country').agg(
+        tracks=('track_name', lambda x: ', '.join(x))
+    ).reset_index().rename(columns={'tracks': 'top_10_tracks'})
     distribution = pd.merge(streams_summary, top_10_streams, on='country', how='left')
+    distribution = pd.merge(distribution, top_10_tracks, on='country', how='left')
     distribution['top_10_share'] = (distribution['top_10_streams'] / distribution['total_streams']).fillna(0)
     distribution['top_10_share'] = (distribution['top_10_share'] * 100).round(2)
     distribution['total_streams'] = distribution['total_streams'].round(2)
