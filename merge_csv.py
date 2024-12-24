@@ -52,6 +52,11 @@ def detect_rising_trends(data):
     활용:
       - 새로운 트렌드를 발견하여 빠르게 대응할 수 있습니다.
       - 신곡 마케팅 또는 빠르게 성장하는 장르를 분석하는 데 유용합니다.
+
+    stream_growth_rate:
+      - 해당 곡의 스트리밍 수가 이전 주와 비교하여 얼마나 증가했는지를 백분율로 나타냅니다.
+      - 음수 값은 스트리밍 수가 감소했음을 나타냅니다.
+      - 예: -0.10은 10% 감소, 0.25는 25% 증가를 의미합니다.
     """
     recent_data = data[data['weeks_on_chart'] <= 4].copy()
     recent_data['rank_change'] = recent_data['previous_rank'] - recent_data['rank']
@@ -74,6 +79,11 @@ def analyze_longevity(data):
     활용:
       - 장기적으로 인기를 끄는 곡이나 아티스트를 확인할 수 있습니다.
       - 지속적인 관심을 받는 곡의 특성을 분석하는 데 유용합니다.
+
+    avg_streams_per_week:
+      - 해당 곡이 차트에 머문 주간 동안의 평균 스트리밍 수를 나타냅니다.
+      - 장기적으로 꾸준히 스트리밍되는 곡을 식별하는 데 유용합니다.
+      - 예: 주당 평균 5000 스트리밍.
     """
     longevity = data.groupby(['country', 'track_name', 'artist_names']).agg(
         total_weeks=('weeks_on_chart', 'sum'),
@@ -98,6 +108,10 @@ def analyze_streams_distribution(data):
     활용:
       - 특정 국가에서 상위 곡의 집중도를 확인할 수 있습니다.
       - 음악 시장의 다양성을 평가하거나 상위 곡에 대한 의존도를 분석하는 데 유용합니다.
+
+    top_10_share:
+      - 해당 국가의 상위 10위 곡이 전체 스트리밍에서 차지하는 비율을 나타냅니다.
+      - 예: 50%는 상위 10곡이 전체 스트리밍의 절반을 차지함을 의미합니다.
     """
     streams_summary = data.groupby('country').agg(
         total_streams=('streams', 'sum')
