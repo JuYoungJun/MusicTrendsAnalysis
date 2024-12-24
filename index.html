@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>데이터 시각화 및 다운로드</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>데이터 시각화 및 CSV 다운로드</h1>
+
+    <!-- 인사이트 페이지로 이동 -->
+    <section>
+        <h2>데이터 분석 인사이트 보기</h2>
+        <p>데이터 분석 결과와 주요 인사이트를 보려면 아래 버튼을 클릭하세요.</p>
+        <a href="insights.html" style="display: inline-block; padding: 10px 20px; background-color: #007BFF; color: white; text-decoration: none; border-radius: 5px;">
+            인사이트 페이지로 이동
+        </a>
+    </section>
+
+    <!-- 데이터 시각화 -->
+    <section>
+        <h2>1. Longevity 데이터 시각화</h2>
+        <canvas id="longevityChart"></canvas>
+    </section>
+
+    <section>
+        <h2>2. Rising Trends 데이터 시각화</h2>
+        <canvas id="risingTrendsChart"></canvas>
+    </section>
+
+    <section>
+        <h2>3. Streams Distribution 데이터 시각화</h2>
+        <canvas id="streamsDistributionChart"></canvas>
+    </section>
+
+    <section>
+        <h2>4. Top Tracks 데이터 시각화</h2>
+        <canvas id="topTracksChart"></canvas>
+    </section>
+
+    <!-- CSV 다운로드 -->
+    <section>
+        <h2>CSV 파일 다운로드</h2>
+        <ul>
+            <li><a href="final_data/longevity.csv" download>Longevity.csv 다운로드</a></li>
+            <li><a href="final_data/rising_trends.csv" download>Rising Trends.csv 다운로드</a></li>
+            <li><a href="final_data/streams_distribution.csv" download>Streams Distribution.csv 다운로드</a></li>
+            <li><a href="final_data/top_tracks.csv" download>Top Tracks.csv 다운로드</a></li>
+        </ul>
+    </section>
+
+    <script>
+        // CSV 데이터 로드 함수
+        async function loadCSV(filePath) {
+            const response = await fetch(filePath);
+            const data = await response.text();
+            const rows = data.split('\n').map(row => row.split(','));
+            return rows;
+        }
+
+        // Longevity 데이터 시각화
+        loadCSV('final_data/longevity.csv').then(rows => {
+            const labels = rows.slice(1).map(row => row[1]); // track_name
+            const avgStreams = rows.slice(1).map(row => parseFloat(row[5])); // avg_streams_per_week
+
+            const ctx = document.getElementById('longevityChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.slice(0, 10), // Top 10만 시각화
+                    datasets: [{
+                        label: '평균 스트림 수',
+                        data: avgStreams.slice(0, 10),
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                }
+            });
+        });
+
+        // Rising Trends 데이터 시각화
+        loadCSV('final_data/rising_trends.csv').then(rows => {
+            const labels = rows.slice(1).map(row => row[2]); // track_name
+            const streamGrowth = rows.slice(1).map(row => parseFloat(row[10])); // stream_growth_rate
+
+            const ctx = document.getElementById('risingTrendsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.slice(0, 10),
+                    datasets: [{
+                        label: '스트림 성장률',
+                        data: streamGrowth.slice(0, 10),
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                }
+            });
+        });
+
+        // Streams Distribution 데이터 시각화
+        loadCSV('final_data/streams_distribution.csv').then(rows => {
+            const labels = rows.slice(1).map(row => row[0]); // country
+            const top10Share = rows.slice(1).map(row => parseFloat(row[5])); // top_10_share
+
+            const ctx = document.getElementById('streamsDistributionChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '상위 10곡 점유율',
+                        data: top10Share,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.6)',
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(255, 206, 86, 0.6)',
+                            'rgba(75, 192, 192, 0.6)',
+                            'rgba(153, 102, 255, 0.6)'
+                        ],
+                        borderColor: 'rgba(255, 255, 255, 1)',
+                        borderWidth: 1
+                    }]
+                }
+            });
+        });
+
+        // Top Tracks 데이터 시각화
+        loadCSV('final_data/top_tracks.csv').then(rows => {
+            const labels = rows.slice(1).map(row => row[1]); // track_name
+            const totalStreams = rows.slice(1).map(row => parseFloat(row[4])); // total_streams
+
+            const ctx = document.getElementById('topTracksChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'horizontalBar',
+                data: {
+                    labels: labels.slice(0, 10),
+                    datasets: [{
+                        label: '총 스트림 수',
+                        data: totalStreams.slice(0, 10),
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                }
+            });
+        });
+    </script>
+</body>
+</html>
