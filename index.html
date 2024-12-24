@@ -94,7 +94,7 @@
         }
 
         // Longevity 데이터 시각화
-        loadCSV('final_data/longevity_top10.csv').then(data => {
+        loadCSV('final_data/longevity.csv').then(data => {
             const svgWidth = 800;
             const svgHeight = 400;
             const margin = { top: 20, right: 30, bottom: 50, left: 40 };
@@ -136,7 +136,7 @@
         });
 
         // Rising Trends 데이터 시각화
-        loadCSV('final_data/rising_trends_top10.csv').then(data => {
+        loadCSV('final_data/rising_trends.csv').then(data => {
             const svgWidth = 800;
             const svgHeight = 400;
             const margin = { top: 20, right: 30, bottom: 50, left: 40 };
@@ -178,7 +178,7 @@
         });
 
         // Streams Distribution 데이터 시각화
-        loadCSV('final_data/streams_distribution_top5.csv').then(data => {
+        loadCSV('final_data/streams_distribution.csv').then(data => {
             const width = 400;
             const height = 400;
             const radius = Math.min(width, height) / 2;
@@ -210,7 +210,7 @@
         });
 
         // Top Tracks 데이터 시각화
-        loadCSV('final_data/top_tracks_top10.csv').then(data => {
+        loadCSV('final_data/top_tracks.csv').then(data => {
             const svgWidth = 800;
             const svgHeight = 400;
             const margin = { top: 20, right: 30, bottom: 50, left: 40 };
