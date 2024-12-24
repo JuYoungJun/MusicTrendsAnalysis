@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>데이터 인사이트</title>
+</head>
+<body>
+    <h1>데이터 인사이트</h1>
+
+    <section id="longevity-insights">
+        <h2>1. Longevity 데이터</h2>
+        <ul id="longevity-list"></ul>
+    </section>
+
+    <section id="rising-trends-insights">
+        <h2>2. Rising Trends 데이터</h2>
+        <ul id="rising-trends-list"></ul>
+    </section>
+
+    <section id="streams-distribution-insights">
+        <h2>3. Streams Distribution 데이터</h2>
+        <ul id="streams-distribution-list"></ul>
+    </section>
+
+    <section id="top-tracks-insights">
+        <h2>4. Top Tracks 데이터</h2>
+        <ul id="top-tracks-list"></ul>
+    </section>
+
+    <script>
+        // CSV 데이터 로드 함수
+        async function loadCSV(filePath) {
+            const response = await fetch(filePath);
+            const data = await response.text();
+            const rows = data.split('\n').map(row => row.split(','));
+            return rows;
+        }
+
+        // Longevity 데이터 인사이트
+        loadCSV('final_data/longevity.csv').then(rows => {
+            const topTracks = rows.slice(1, 6).map(row => ({
+                name: row[1], // track_name
+                avgStreams: parseFloat(row[5]) // avg_streams_per_week
+            }));
+
+            const longevityList = document.getElementById('longevity-list');
+            topTracks.forEach(track => {
+                const li = document.createElement('li');
+                li.textContent = `${track.name}: 평균 스트림 수 ${track.avgStreams.toLocaleString()}회`;
+                longevityList.appendChild(li);
+            });
+        });
+
+        // Rising Trends 데이터 인사이트
+        loadCSV('final_data/rising_trends.csv').then(rows => {
+            const topGrowthTracks = rows.slice(1, 6).map(row => ({
+                name: row[2], // track_name
+                growthRate: parseFloat(row[10]), // stream_growth_rate
+                rankChange: parseInt(row[9]) // rank_change
+            }));
+
+            const risingTrendsList = document.getElementById('rising-trends-list');
+            topGrowthTracks.forEach(track => {
+                const li = document.createElement('li');
+                li.textContent = `${track.name}: 성장률 ${track.growthRate}, 랭크 변동 ${track.rankChange}`;
+                risingTrendsList.appendChild(li);
+            });
+        });
+
+        // Streams Distribution 데이터 인사이트
+        loadCSV('final_data/streams_distribution.csv').then(rows => {
+            const topCountries = rows.slice(1, 6).map(row => ({
+                country: row[0], // country
+                top10Share: parseFloat(row[5]) // top_10_share
+            }));
+
+            const streamsDistributionList = document.getElementById('streams-distribution-list');
+            topCountries.forEach(country => {
+                const li = document.createElement('li');
+                li.textContent = `${country.country}: 상위 10곡 점유율 ${country.top10Share}%`;
+                streamsDistributionList.appendChild(li);
+            });
+        });
+
+        // Top Tracks 데이터 인사이트
+        loadCSV('final_data/top_tracks.csv').then(rows => {
+            const topTracks = rows.slice(1, 6).map(row => ({
+                name: row[1], // track_name
+                totalStreams: parseFloat(row[4]) // total_streams
+            }));
+
+            const topTracksList = document.getElementById('top-tracks-list');
+            topTracks.forEach(track => {
+                const li = document.createElement('li');
+                li.textContent = `${track.name}: 총 스트림 수 ${track.totalStreams.toLocaleString()}회`;
+                topTracksList.appendChild(li);
+            });
+        });
+    </script>
+</body>
+</html>
