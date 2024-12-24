@@ -104,7 +104,7 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
         country_html = os.path.join(intermediate_folder, f"{country}_data.html")
 
         # Save as CSV
-        data.to_csv(country_csv, index=False, encoding='utf-8')
+        data.to_csv(country_csv, index=False, encoding='utf-8-sig', line_terminator='\n')
         # Save as JSON
         save_as_json(data, country_json)
         # Save as HTML
@@ -119,7 +119,7 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
     final_html = os.path.join(final_output_folder, "final_merged_data.html")
 
     # Save final merged data
-    merged_data.to_csv(final_csv, index=False, encoding='utf-8')
+    merged_data.to_csv(final_csv, index=False, encoding='utf-8-sig', line_terminator='\n')
     save_as_json(merged_data, final_json)
     save_as_html(merged_data, final_html)
 
