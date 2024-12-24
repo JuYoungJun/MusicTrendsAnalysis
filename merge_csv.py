@@ -69,7 +69,7 @@ def save_as_html(dataframe, file_path):
     </html>
     ''')
     rendered_html = html_template.render(table=dataframe.to_html(index=False, classes='table table-striped'))
-    with open(file_path, 'w') as f:
+    with open(file_path, 'w', encoding='utf-8') as f:
         f.write(rendered_html)
 
 def merge_by_country(input_folder, intermediate_folder, final_output_folder):
@@ -88,6 +88,7 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
         file_name = os.path.basename(file_path)  # 파일 이름 추출
         country = extract_country_from_filename(file_name)  # 파일 이름에서 국가 코드 추출
         df = pd.read_csv(file_path)
+        df['country'] = country  # DataFrame에 국가 코드 추가
 
         if country not in country_data:
             country_data[country] = df
@@ -103,7 +104,7 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
         country_html = os.path.join(intermediate_folder, f"{country}_data.html")
 
         # Save as CSV
-        data.to_csv(country_csv, index=False)
+        data.to_csv(country_csv, index=False, encoding='utf-8')
         # Save as JSON
         save_as_json(data, country_json)
         # Save as HTML
@@ -118,7 +119,7 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
     final_html = os.path.join(final_output_folder, "final_merged_data.html")
 
     # Save final merged data
-    merged_data.to_csv(final_csv, index=False)
+    merged_data.to_csv(final_csv, index=False, encoding='utf-8')
     save_as_json(merged_data, final_json)
     save_as_html(merged_data, final_html)
 
