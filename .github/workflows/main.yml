@@ -53,7 +53,7 @@ jobs:
         run: |
           git config --global user.name "JuYoungJun"
           git config --global user.email "kaks162@gmail.com"
-          git remote set-url origin https://JuYoungJun:${{ secrets.PAT }}@github.com/JuYoungJun/test135.git
+          git remote set-url origin https://JuYoungJun:${{ secrets.PAT }}@github.com/JuYoungJun/MusicTrendsAnalysis.git
           git add country_data/* final_data/* || echo "No files to add"
           git commit -m "Automated merge and upload of data files" || echo "No changes to commit"
           echo "Pushing changes..."
