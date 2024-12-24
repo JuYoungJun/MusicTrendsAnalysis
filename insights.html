@@ -4,27 +4,70 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>데이터 인사이트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            background-color: #f9f9f9;
+        }
+        header {
+            background-color: #007BFF;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        section {
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 800px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #007BFF;
+        }
+        ul {
+            padding: 0;
+            list-style: none;
+        }
+        ul li {
+            background: #f4f4f4;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+    </style>
 </head>
 <body>
-    <h1>데이터 인사이트</h1>
+    <header>
+        <h1>데이터 인사이트</h1>
+    </header>
 
     <section id="longevity-insights">
         <h2>1. Longevity 데이터</h2>
+        <p>다음은 평균 스트림 수가 높은 곡 상위 5개입니다:</p>
         <ul id="longevity-list"></ul>
     </section>
 
     <section id="rising-trends-insights">
         <h2>2. Rising Trends 데이터</h2>
+        <p>다음은 성장률과 랭크 변동이 큰 상위 5개 곡입니다:</p>
         <ul id="rising-trends-list"></ul>
     </section>
 
     <section id="streams-distribution-insights">
         <h2>3. Streams Distribution 데이터</h2>
+        <p>상위 10곡 점유율이 높은 상위 5개 국가는:</p>
         <ul id="streams-distribution-list"></ul>
     </section>
 
     <section id="top-tracks-insights">
         <h2>4. Top Tracks 데이터</h2>
+        <p>총 스트림 수가 높은 곡 상위 5개는 다음과 같습니다:</p>
         <ul id="top-tracks-list"></ul>
     </section>
 
