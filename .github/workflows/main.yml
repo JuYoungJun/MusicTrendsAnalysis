@@ -38,4 +38,5 @@ jobs:
           git config --global user.email "kaks162@gmail.com"
           git add country_data/* final_data/*
           git commit -m "Automated merge and upload of data files"
-          git push https://x-access-token:${{ secrets.GIT_TOKEN }}@github.com/JuYoungJun/test135.git HEAD:main
+          git remote set-url origin https://x-access-token:${{ secrets.GIT_TOKEN }}@github.com/JuYoungJun/test135.git
+          git push origin HEAD:main
