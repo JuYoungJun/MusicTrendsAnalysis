@@ -3,7 +3,7 @@ name: Merge Spotify Data
 on:
   push:
     paths:
-      - "spotify_data/**/*.csv"
+      - "spotify_data/**/*.csv"  # CSV 파일 변경 시 실행
   workflow_dispatch:
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
         run: |
           pip install pandas jinja2
 
-      # 디버깅: 현재 환경 확인
+      # 디버깅: 환경 확인
       - name: Debug Environment
         run: |
           echo "Current working directory: $(pwd)"
@@ -35,21 +35,12 @@ jobs:
           echo "Python version:"
           python --version
 
-      # 디버깅: GIT_TOKEN 확인
-      - name: Debug Token
-        env:
-          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
-        run: |
-          echo "Token length: ${#GIT_TOKEN}"
-          echo "Token starts with: ${GIT_TOKEN:0:4}"
-          echo "Token ends with: ${GIT_TOKEN: -4}"
-
       # 병합 스크립트 실행
       - name: Run merge script
         run: |
           python merge_csv.py
 
-      # 디버깅: Git 변경 사항 확인
+      # GitHub 변경 사항 확인
       - name: Debug Git Changes
         run: |
           git status
@@ -58,11 +49,11 @@ jobs:
       # 병합 결과를 커밋 및 푸시
       - name: Commit and Push Changes
         env:
-          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+          PAT: ${{ secrets.PAT }}  # Personal Access Token
         run: |
           git config --global user.name "JuYoungJun"
           git config --global user.email "kaks162@gmail.com"
-          git remote set-url origin https://x-access-token:${{ secrets.GIT_TOKEN }}@github.com/JuYoungJun/test135.git
+          git remote set-url origin https://JuYoungJun:${{ secrets.PAT }}@github.com/JuYoungJun/test135.git
           git add country_data/* final_data/* || echo "No files to add"
           git commit -m "Automated merge and upload of data files" || echo "No changes to commit"
           echo "Pushing changes..."
