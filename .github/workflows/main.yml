@@ -34,7 +34,7 @@ jobs:
       # 병합 결과를 커밋 및 푸시
       - name: Commit and Push Changes
         run: |
-          git config --global user.name "mandoo"
+          git config --global user.name "JuYoungJun"
           git config --global user.email "kaks162@gmail.com"
           git add country_data/* final_data/*
           git commit -m "Automated merge and upload of data files"
