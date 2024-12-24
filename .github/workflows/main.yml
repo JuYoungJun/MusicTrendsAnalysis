@@ -3,8 +3,8 @@ name: Merge Spotify Data
 on:
   push:
     paths:
-      - "spotify_data/*.csv"  # spotify_data 폴더 내 CSV 파일 변경 시 실행
-  workflow_dispatch: # 수동 실행도 가능
+      - "spotify_data/**/*.csv"  # CSV 파일 변경 시 실행
+  workflow_dispatch:
 
 jobs:
   merge:
@@ -26,16 +26,18 @@ jobs:
         run: |
           pip install pandas jinja2
 
-      # merge_csv.py 스크립트 실행
+      # 병합 스크립트 실행
       - name: Run merge script
         run: |
           python merge_csv.py
 
-      # 병합 결과 업로드
-      - name: Upload merged data
-        uses: actions/upload-artifact@v3
-        with:
-          name: merged-data
-          path: |
-            country_data/*   # 국가별 병합 데이터
-            final_data/*     # 최종 병합 데이터
+      # 병합 결과를 커밋 및 푸시
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add country_data/* final_data/*
+          git commit -m "Automated merge and upload of data files"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
