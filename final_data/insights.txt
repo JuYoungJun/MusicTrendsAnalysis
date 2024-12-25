@@ -1,0 +1,8 @@
+국가별 월별 스트리밍 합계 분석 결과 저장 경로:
+./final_data/country_monthly_streams.csv
+
+국가별 인기 아티스트 분석 결과 저장 경로:
+./final_data/popular_artists_by_country.csv
+
+월별 전세계적으로 가장 인기 있는 곡 분석 결과 저장 경로:
+./final_data/global_top_tracks.csv
