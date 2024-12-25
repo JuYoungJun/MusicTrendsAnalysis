@@ -1,0 +1,77 @@
+﻿# 국가별 가장 많이 스트리밍된 아티스트 분석 결과
+Country,artist_names,streams
+AU,Taylor Swift,611725756.0
+AU,Sabrina Carpenter,252178729.0
+AU,Luke Combs,238771929.0
+AU,Billie Eilish,205768515.0
+AU,Morgan Wallen,183354248.0
+BR,Henrique & Juliano,1268943912.0
+BR,Zé Neto & Cristiano,357974128.0
+BR,Simone Mendes,240297291.0
+BR,Ana Castela,237497527.0
+BR,Hugo & Guilherme,230833379.0
+DE,AYLIVA,449887689.0
+DE,Pashanim,311858531.0
+DE,Apache 207,229217653.0
+DE,Linkin Park,191252111.0
+DE,Eminem,190060889.0
+ES,Quevedo,347538276.0
+ES,Myke Towers,317255850.0
+ES,SAIKO,242838693.0
+ES,KAROL G,240873929.0
+ES,Feid,190871949.0
+FR,Werenoi,497405085.0
+FR,PLK,240792565.0
+FR,Jul,229121628.0
+FR,SDM,222456199.0
+FR,Ninho,197306916.0
+GB,Taylor Swift,685993149.0
+GB,Arctic Monkeys,316625765.0
+GB,Sabrina Carpenter,256073490.0
+GB,Olivia Rodrigo,237789984.0
+GB,Billie Eilish,235994081.0
+IN,Shubh,862542856.0
+IN,"Pritam, Arijit Singh",643433017.0
+IN,Darshan Raval,474083467.0
+IN,Arijit Singh,398034973.0
+IN,King,337747784.0
+JP,Mrs. GREEN APPLE,1172375502.0
+JP,back number,597059744.0
+JP,YOASOBI,440049538.0
+JP,Vaundy,414794827.0
+JP,OFFICIAL HIGE DANDISM,356312356.0
+KR,Jimin,191575644.0
+KR,Lim Young Woong,137258125.0
+KR,NewJeans,86997024.0
+KR,"Jung Kook, Latto",41649330.0
+KR,Jung Kook,41113979.0
+MX,Alfredo Olivas,1078345248.0
+MX,Junior H,765362083.0
+MX,Natanael Cano,703367310.0
+MX,KAROL G,526041784.0
+MX,Julión Álvarez y su Norteño Banda,499492078.0
+SE,Bolaget,159892081.0
+SE,"Humlan Djojj, Josefine Götestam",118727749.0
+SE,Yasin,112500185.0
+SE,Hov1,104720974.0
+SE,Veronica Maggio,95232813.0
+TH,V,216908848.0
+TH,LISA,186930898.0
+TH,Jung Kook,132946280.0
+TH,Jimin,121567057.0
+TH,fellow fellow,107270299.0
+US,Taylor Swift,957388167.0
+US,Zach Bryan,629619313.0
+US,Morgan Wallen,469102339.0
+US,Luke Combs,420797504.0
+US,Steve Lacy,383239892.0
+VN,Sơn Tùng M-TP,118640675.0
+VN,Jimin,115992786.0
+VN,V,113704817.0
+VN,"Wren Evans, itsnk",110698510.0
+VN,Jung Kook,91409531.0
+ZA,Billie Eilish,33654562.0
+ZA,"Kabza De Small, Mthunzi, DJ Maphorisa, Young Stunna, Sizwe Alakine, Umthakathi Kush",25971555.0
+ZA,Miguel,23846800.0
+ZA,SZA,23542759.0
+ZA,Bryson Tiller,22420874.0
