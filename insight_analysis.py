@@ -50,19 +50,23 @@ def visualize_global_trends_heatmap(data, output_path):
     월별 인기 곡/아티스트의 스트리밍 수를 히트맵으로 시각화합니다.
     """
     pivot_data = data.pivot(index='Name', columns='Month', values='streams').fillna(0)
-    pivot_data.columns = pd.to_datetime(pivot_data.columns)
-    pivot_data = pivot_data.sort_index(axis=1)
+    top_items = pivot_data.sum(axis=1).nlargest(20).index  # 상위 20개만 선택
+    filtered_data = pivot_data.loc[top_items]
+    filtered_data.columns = pd.to_datetime(filtered_data.columns)
+    filtered_data = filtered_data.sort_index(axis=1)
 
-    plt.figure(figsize=(14, 10))
+    plt.figure(figsize=(14, 8))
     sns.heatmap(
-        pivot_data,
-        cmap="YlGnBu",
+        filtered_data,
+        cmap="coolwarm",
         cbar_kws={"label": "스트리밍 수"},
         linewidths=0.5
     )
     plt.title("월별 인기 곡/아티스트 스트리밍 히트맵", fontsize=16)
-    plt.xlabel("월", fontsize=14)
-    plt.ylabel("곡/아티스트", fontsize=14)
+    plt.xlabel("월", fontsize=12)
+    plt.ylabel("곡/아티스트", fontsize=12)
+    plt.xticks(rotation=45, fontsize=10)
+    plt.yticks(fontsize=10)
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close()
