@@ -23,6 +23,9 @@ def analyze_and_visualize_insights(output_folder):
 
     print(f"데이터 분석 및 시각화 결과는 {output_folder}에 저장됩니다.")
 
+    # 시각화 파일 경로 리스트 (추가)
+    generated_files = []
+
     # 1. 국가별 월별 스트리밍 최대/최소 트렌드 분석
     max_stream_path = os.path.join(output_folder, "max_stream_month.csv")
     min_stream_path = os.path.join(output_folder, "min_stream_month.csv")
@@ -42,6 +45,7 @@ def analyze_and_visualize_insights(output_folder):
         plt.tight_layout()
         result_path = os.path.join(output_folder, "country_stream_trends_improved.png")
         plt.savefig(result_path)
+        generated_files.append(result_path)
         print(f"시각화 결과 저장: {result_path}")
         plt.close()
 
@@ -60,6 +64,7 @@ def analyze_and_visualize_insights(output_folder):
         plt.tight_layout()
         result_path = os.path.join(output_folder, "artist_overlap_improved.png")
         plt.savefig(result_path)
+        generated_files.append(result_path)
         print(f"시각화 결과 저장: {result_path}")
         plt.close()
 
@@ -82,8 +87,12 @@ def analyze_and_visualize_insights(output_folder):
         plt.tight_layout()
         result_path = os.path.join(output_folder, "global_trends_improved.png")
         plt.savefig(result_path)
+        generated_files.append(result_path)
         print(f"시각화 결과 저장: {result_path}")
         plt.close()
+
+    # 생성된 파일 리스트 출력
+    print("생성된 파일들:", generated_files)
 
 if __name__ == "__main__":
     final_data_folder = "./final_data"
