@@ -1,3 +1,4 @@
+# 변경된 워크플로우
 name: Analyze Insights Workflow
 
 on:
@@ -38,25 +39,35 @@ jobs:
     - name: Run insights analysis
       run: |
         python insight_analysis.py
-        ls -R insights/ || echo "insights 폴더가 비어있습니다."
+        if [ -d "insights" ]; then
+          echo "insights 폴더 생성 확인됨."
+          ls -R insights/
+        else
+          echo "insights 폴더가 생성되지 않았습니다."
+          exit 1
+        fi
 
-    # 6. 결과물 확인 및 업로드
+    # 6. 결과물을 아티팩트로 업로드
+    - name: Upload results
+      if: success()
+      uses: actions/upload-artifact@v3
+      with:
+        name: analysis-results
+        path: insights/**
+        if-no-files-found: warn
+
+    # 7. 변경된 파일 커밋 및 푸시
     - name: Commit and Push Changes
       env:
         PAT: ${{ secrets.PAT }}  # Personal Access Token
       run: |
-        if [ -d "insights" ]; then
-          if [ "$(ls -A insights)" ]; then
-            echo "insights 폴더에 파일이 존재합니다. 커밋 및 푸시를 진행합니다."
-            git config --global user.name "JuYoungJun"
-            git config --global user.email "kaks162@gmail.com"
-            git remote set-url origin https://JuYoungJun:${{ secrets.PAT }}@github.com/JuYoungJun/MusicTrendsAnalysis.git
-            git add insights/** || echo "No files to add"
-            git commit -m "Automated insights analysis upload" || echo "No changes to commit"
-            git push origin HEAD:main
-          else
-            echo "insights 폴더는 비어있습니다. 커밋을 생략합니다."
-          fi
+        git config --global user.name "JuYoungJun"
+        git config --global user.email "kaks162@gmail.com"
+        git remote set-url origin https://JuYoungJun:${{ secrets.PAT }}@github.com/JuYoungJun/MusicTrendsAnalysis.git
+        if [ -d "insights" ] && [ "$(ls -A insights)" ]; then
+          echo "insights 폴더에 파일이 존재합니다. 커밋 및 푸시를 진행합니다."
+          git add insights/**
+          git commit -m "Automated insights analysis upload"
+          git push origin HEAD:main
         else
-          echo "insights 폴더가 생성되지 않았습니다. 스크립트를 확인하세요."
-        fi
+          echo "insights 폴더가 비어있어서 커밋하지 않습니다."
