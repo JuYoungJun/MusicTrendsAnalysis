@@ -46,15 +46,7 @@ jobs:
             exit 1
           fi
 
-      # 6. insights 폴더에 기본 파일 추가 (필요시 디버깅용)
-      - name: Ensure insights folder has files
-        run: |
-          if [ -d "insights" ] && [ ! "$(ls -A insights)" ]; then
-            echo "디버깅용 빈 파일 생성" > insights/placeholder.txt
-            echo "insights 폴더에 기본 파일 생성 완료."
-          fi
-
-      # 7. 결과물을 아티팩트로 업로드
+      # 6. 결과물을 아티팩트로 업로드
       - name: Upload insights
         uses: actions/upload-artifact@v3
         with:
@@ -62,7 +54,7 @@ jobs:
           path: insights/**
           if-no-files-found: error
 
-      # 8. 변경된 파일 커밋 및 푸시
+      # 7. 변경된 파일 커밋 및 푸시
       - name: Commit and Push Changes
         env:
           PAT: ${{ secrets.PAT }}  # Personal Access Token
