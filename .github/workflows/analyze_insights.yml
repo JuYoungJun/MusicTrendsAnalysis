@@ -40,40 +40,23 @@ jobs:
         python insight_analysis.py
         ls -R insights/ || echo "insights 폴더가 비어있습니다."
 
-    # 6. insights 폴더 확인
-    - name: Check insights folder
-      run: |
-        if [ -d "insights" ]; then
-          echo "insights 폴더가 존재합니다."
-          if [ "$(ls -A insights)" ]; then
-            echo "insights 폴더에 파일이 존재합니다."
-          else
-            echo "insights 폴더가 비어있습니다. 워크플로우를 종료합니다."
-            exit 1
-          fi
-        else
-          echo "insights 폴더가 생성되지 않았습니다. 워크플로우를 종료합니다."
-          exit 1
-
-    # 7. 결과물을 아티팩트로 업로드
-    - name: Upload results
-      uses: actions/upload-artifact@v3
-      with:
-        name: analysis-results
-        path: insights/**
-        if-no-files-found: error
-
-    # 8. 변경된 파일 커밋 및 푸시
+    # 6. 결과물 확인 및 업로드
     - name: Commit and Push Changes
       env:
         PAT: ${{ secrets.PAT }}  # Personal Access Token
       run: |
-        git config --global user.name "JuYoungJun"
-        git config --global user.email "kaks162@gmail.com"
-        git remote set-url origin https://JuYoungJun:${{ secrets.PAT }}@github.com/JuYoungJun/MusicTrendsAnalysis.git
-        if [ -d "insights" ] && [ "$(ls -A insights)" ]; then
-          git add insights/** || echo "No files to add"
-          git commit -m "Automated insights analysis upload" || echo "No changes to commit"
-          git push origin HEAD:main
+        if [ -d "insights" ]; then
+          if [ "$(ls -A insights)" ]; then
+            echo "insights 폴더에 파일이 존재합니다. 커밋 및 푸시를 진행합니다."
+            git config --global user.name "JuYoungJun"
+            git config --global user.email "kaks162@gmail.com"
+            git remote set-url origin https://JuYoungJun:${{ secrets.PAT }}@github.com/JuYoungJun/MusicTrendsAnalysis.git
+            git add insights/** || echo "No files to add"
+            git commit -m "Automated insights analysis upload" || echo "No changes to commit"
+            git push origin HEAD:main
+          else
+            echo "insights 폴더는 비어있습니다. 커밋을 생략합니다."
+          fi
         else
-          echo "insights 폴더가 비어있어서 커밋하지 않습니다."
+          echo "insights 폴더가 생성되지 않았습니다. 스크립트를 확인하세요."
+        fi
