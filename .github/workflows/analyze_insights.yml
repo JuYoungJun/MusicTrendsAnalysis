@@ -1,60 +1,37 @@
 name: Analyze Insights Workflow
-
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-
 jobs:
   analyze-insights:
     runs-on: ubuntu-latest
-
     steps:
     # 1. GitHub 저장소 체크아웃
     - name: Checkout repository
       uses: actions/checkout@v3
-
-    # 2. Noto Sans CJK 폰트 설치
+    # 2. 폰트 설치 (한글 폰트를 사용하기 위해 필요)
     - name: Install Noto Sans CJK Font
       run: |
         sudo apt-get update
         sudo apt-get install -y fonts-noto-cjk
         echo "Noto Sans CJK 폰트 설치 완료"
-
     # 3. Python 환경 설정
     - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
-
-    # 4. Python 의존성 설치
+        python-version: "3.9"
+    # 4. 의존성 설치
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install matplotlib pandas matplotlib-venn
-
     # 5. 데이터 분석 및 시각화 실행
     - name: Run insights analysis
       run: |
         python insight_analysis.py
-        if [ -d "insights" ]; then
-          echo "insights 폴더 생성 확인됨."
-          ls -R insights/
-        else
-          echo "insights 폴더가 생성되지 않았습니다."
-          exit 1
-        fi
-
-    # 6. 결과물을 아티팩트로 업로드
-    - name: Upload results
-      uses: actions/upload-artifact@v3
-      with:
-        name: analysis-results
-        path: insights/**
-        if-no-files-found: warn
-
-    # 7. 변경된 파일 커밋 및 푸시
+    # 6. 결과물을 커밋 및 푸시
     - name: Commit and Push Changes
       env:
         PAT: ${{ secrets.PAT }}  # Personal Access Token
@@ -62,11 +39,6 @@ jobs:
         git config --global user.name "JuYoungJun"
         git config --global user.email "kaks162@gmail.com"
         git remote set-url origin https://JuYoungJun:${{ secrets.PAT }}@github.com/JuYoungJun/MusicTrendsAnalysis.git
-        if [ -d "insights" ] && [ "$(ls -A insights)" ]; then
-          echo "insights 폴더에 파일이 존재합니다. 커밋 및 푸시를 진행합니다."
-          git add insights/** || echo "No files to add"
-          git commit -m "Automated insights analysis upload" || echo "No changes to commit"
-          git push origin HEAD:main
-        else
-          echo "insights 폴더가 비어있어서 커밋하지 않습니다."
-        fi
+        git add insights/* || echo "No files to add"
+        git commit -m "Automated insights upload" || echo "No changes to commit"
+        git push origin HEAD:main
