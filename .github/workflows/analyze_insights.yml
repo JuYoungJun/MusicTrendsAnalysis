@@ -44,11 +44,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: analysis-results
-        path: |
-          insights/country_stream_trends.png
-          insights/artist_comparison.png
-          insights/monthly_trends.png
-          insights/top_tracks_artists.png
+        path: insights/**
 
     # 7. 변경된 파일 커밋 및 푸시
     - name: Commit and Push Changes
@@ -60,5 +56,4 @@ jobs:
         git remote set-url origin https://JuYoungJun:${{ secrets.PAT }}@github.com/JuYoungJun/MusicTrendsAnalysis.git
         git add insights/* || echo "No files to add"
         git commit -m "Automated analysis results upload" || echo "No changes to commit"
-        echo "Pushing changes..."
-        GIT_TRACE=1 GIT_CURL_VERBOSE=1 git push origin HEAD:main
+        git push origin HEAD:main
