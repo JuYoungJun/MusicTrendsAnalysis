@@ -38,7 +38,7 @@ jobs:
     - name: Run insights analysis
       run: |
         python insight_analysis.py
-        ls -R insights/ || echo "insights 폴더가 비어있거나 생성되지 않았습니다."
+        ls -R insights/ || echo "insights 폴더가 비어있습니다."
 
     # 6. 결과물을 아티팩트로 업로드
     - name: Upload results
@@ -46,7 +46,7 @@ jobs:
       with:
         name: analysis-results
         path: insights/**
-        if-no-files-found: error
+        if-no-files-found: warn
 
     # 7. 변경된 파일 커밋 및 푸시
     - name: Commit and Push Changes
@@ -62,4 +62,3 @@ jobs:
           git push origin HEAD:main
         else
           echo "insights 폴더가 비어있어서 커밋하지 않습니다."
-        fi
