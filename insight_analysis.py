@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 def setup_korean_font():
     """
     한글 폰트를 설정하는 함수입니다.
@@ -17,7 +18,9 @@ def setup_korean_font():
     else:
         print("폰트를 찾을 수 없습니다. Actions 설정을 확인하세요.")
 
+
 setup_korean_font()
+
 
 def visualize_country_stream_trends(max_stream_path, min_stream_path, output_path):
     """
@@ -43,6 +46,7 @@ def visualize_country_stream_trends(max_stream_path, min_stream_path, output_pat
     else:
         print(f"{max_stream_path} 또는 {min_stream_path} 파일이 존재하지 않습니다.")
 
+
 def visualize_global_trends_heatmap(data, output_path):
     """
     월별 인기 곡/아티스트의 스트리밍 수를 히트맵으로 시각화합니다.
@@ -51,7 +55,7 @@ def visualize_global_trends_heatmap(data, output_path):
     top_items = pivot_data.sum(axis=1).nlargest(10).index
     filtered_data = pivot_data.loc[top_items]
 
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(14, 10))
     sns.heatmap(
         filtered_data,
         annot=True,
@@ -68,29 +72,44 @@ def visualize_global_trends_heatmap(data, output_path):
     plt.close()
     print(f"히트맵 저장 완료: {output_path}")
 
+
 def visualize_artist_overlap_comparison(local_artists, global_artists, output_path):
     """
-    로컬 및 글로벌 아티스트의 비교를 막대 그래프로 시각화합니다.
+    로컬 및 글로벌 아티스트의 비교를 클러스터 방식으로 시각화합니다.
     """
-    overlap_artists = local_artists & global_artists
-    local_only = local_artists - global_artists
-    global_only = global_artists - local_artists
+    overlap_artists = list(local_artists & global_artists)
+    local_only = list(local_artists - global_artists)
+    global_only = list(global_artists - local_artists)
 
-    categories = ['겹치는 아티스트', '로컬 전용', '글로벌 전용']
-    counts = [len(overlap_artists), len(local_only), len(global_only)]
+    artist_data = {
+        "Artist": overlap_artists + local_only + global_only,
+        "Group": ["겹치는 아티스트"] * len(overlap_artists) +
+                 ["로컬 전용"] * len(local_only) +
+                 ["글로벌 전용"] * len(global_only)
+    }
 
-    plt.figure(figsize=(10, 6))
-    plt.bar(categories, counts, color=['green', 'blue', 'orange'])
-    plt.title("로컬 및 글로벌 아티스트 비교", fontsize=16)
-    plt.ylabel("아티스트 수", fontsize=14)
+    artist_df = pd.DataFrame(artist_data)
 
-    for i, count in enumerate(counts):
-        plt.text(i, count + 0.5, str(count), ha='center', fontsize=12)
+    # 클러스터 시각화
+    plt.figure(figsize=(14, 8))
+    sns.scatterplot(
+        data=artist_df,
+        x="Artist",
+        y="Group",
+        hue="Group",
+        palette={"겹치는 아티스트": "green", "로컬 전용": "blue", "글로벌 전용": "orange"},
+        s=100
+    )
 
+    plt.title("로컬 및 글로벌 아티스트 클러스터 비교", fontsize=16)
+    plt.xlabel("아티스트", fontsize=14)
+    plt.ylabel("그룹", fontsize=14)
+    plt.xticks(rotation=90, fontsize=10)
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close()
-    print(f"아티스트 비교 시각화 저장 완료: {output_path}")
+    print(f"아티스트 비교 클러스터 시각화 저장 완료: {output_path}")
+
 
 if __name__ == "__main__":
     # 파일 경로 정의
@@ -100,13 +119,14 @@ if __name__ == "__main__":
     if not os.path.exists(insights_output_folder):
         os.makedirs(insights_output_folder)
 
-    # 시각화 실행
+    # 국가별 최대/최소 스트리밍 시각화
     visualize_country_stream_trends(
         os.path.join(final_data_folder, "max_stream_month.csv"),
         os.path.join(final_data_folder, "min_stream_month.csv"),
         os.path.join(insights_output_folder, "country_stream_trends_improved.png")
     )
 
+    # 글로벌 트렌드 히트맵
     combined_data_path = os.path.join(final_data_folder, "monthly_common_tracks_and_artists.csv")
     if os.path.exists(combined_data_path):
         combined_data = pd.read_csv(combined_data_path)
@@ -115,6 +135,7 @@ if __name__ == "__main__":
             os.path.join(insights_output_folder, "global_trends_heatmap_improved.png")
         )
 
+    # 로컬/글로벌 아티스트 비교 클러스터
     top_artists_path = os.path.join(final_data_folder, "top_artists_by_country.csv")
     global_artists_path = os.path.join(final_data_folder, "global_top_artists.csv")
     if os.path.exists(top_artists_path) and os.path.exists(global_artists_path):
