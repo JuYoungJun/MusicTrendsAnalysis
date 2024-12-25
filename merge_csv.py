@@ -58,6 +58,19 @@ def extract_date_from_filename(file_name):
             return "INVALID_DATE"
     return "UNKNOWN"
 
+def save_csv_with_metadata(df, file_path, description):
+    """
+    데이터프레임을 저장하면서 파일의 첫 줄에 설명을 추가합니다.
+
+    Args:
+        df (pd.DataFrame): 저장할 데이터프레임
+        file_path (str): 저장할 파일 경로
+        description (str): 데이터 설명
+    """
+    with open(file_path, 'w', encoding='utf-8-sig') as f:
+        f.write(f"# {description}\n")
+    df.to_csv(file_path, mode='a', index=False, encoding='utf-8-sig')
+
 def merge_by_country(input_folder, intermediate_folder, final_output_folder):
     """
     국가별 CSV 파일을 병합하여 단일 데이터셋으로 만듭니다.
@@ -111,7 +124,8 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
 
     for country, data in country_data.items():
         country_csv = os.path.join(intermediate_folder, f"{country}_data.csv")
-        data.to_csv(country_csv, index=False, encoding='utf-8-sig')
+        description = f"국가 {country}의 스트리밍 데이터"
+        save_csv_with_metadata(data, country_csv, description)
 
     merged_data = pd.concat(country_data.values(), ignore_index=True)
     merged_data['Date'] = pd.to_datetime(merged_data['Date'], errors='coerce')
@@ -129,7 +143,8 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
     upper_bound = Q3 + 1.5 * IQR
     merged_data = merged_data[(merged_data['streams'] >= lower_bound) & (merged_data['streams'] <= upper_bound)]
 
-    merged_data.to_csv(os.path.join(final_output_folder, "final_merged_data.csv"), index=False, encoding='utf-8-sig')
+    description = "모든 국가의 병합된 스트리밍 데이터"
+    save_csv_with_metadata(merged_data, os.path.join(final_output_folder, "final_merged_data.csv"), description)
     print("데이터 병합 및 저장 완료.")
 
 def analyze_music_trends(final_output_folder):
@@ -175,7 +190,8 @@ def analyze_music_trends(final_output_folder):
     # - 국가별 가장 스트리밍 활동이 많은 월을 파악하여 시장 마케팅 전략에 활용할 수 있습니다.
     monthly_max_streams = data.groupby(['Country', 'Month'])['streams'].sum().reset_index()
     max_stream_month = monthly_max_streams.loc[monthly_max_streams.groupby('Country')['streams'].idxmax()]
-    max_stream_month.to_csv(os.path.join(final_output_folder, "max_stream_month.csv"), index=False, encoding='utf-8-sig')
+    description = "국가별 월별 가장 많이 스트리밍된 월 분석 결과"
+    save_csv_with_metadata(max_stream_month, os.path.join(final_output_folder, "max_stream_month.csv"), description)
 
     # 2. 특정 달에 스트리밍이 가장 적은 국가 분석
     # 국가별로 월별 스트리밍 수를 합산하여 가장 적은 스트리밍 수를 기록한 월을 찾습니다.
@@ -189,7 +205,8 @@ def analyze_music_trends(final_output_folder):
     # 활용법:
     # - 스트리밍이 낮은 시기에 대한 원인을 분석하고, 캠페인 및 활동 계획에 반영할 수 있습니다.
     min_stream_month = monthly_max_streams.loc[monthly_max_streams.groupby('Country')['streams'].idxmin()]
-    min_stream_month.to_csv(os.path.join(final_output_folder, "min_stream_month.csv"), index=False, encoding='utf-8-sig')
+    description = "국가별 월별 가장 적게 스트리밍된 월 분석 결과"
+    save_csv_with_metadata(min_stream_month, os.path.join(final_output_folder, "min_stream_month.csv"), description)
 
     # 3. 특정 국가에서만 많이 등장하는 가수와 공통적으로 많이 등장하는 가수
     # 국가별로 가장 많이 스트리밍된 가수를 식별합니다.
@@ -204,12 +221,13 @@ def analyze_music_trends(final_output_folder):
     # - 국가별로 인기 있는 가수와 글로벌 인기 가수를 비교하여 음악 소비 트렌드를 분석할 수 있습니다.
     artist_streams = data.groupby(['Country', 'artist_names'])['streams'].sum().reset_index()
     top_artists = artist_streams.groupby('Country').apply(lambda x: x.nlargest(5, 'streams'))
-    top_artists.to_csv(os.path.join(final_output_folder, "top_artists_by_country.csv"), index=False, encoding='utf-8-sig')
+    description = "국가별 가장 많이 스트리밍된 아티스트 분석 결과"
+    save_csv_with_metadata(top_artists, os.path.join(final_output_folder, "top_artists_by_country.csv"), description)
 
-    # 전세계적으로 가장 많이 스트리밍된 가수를 분석합니다.
     global_top_artists = artist_streams.groupby('artist_names')['streams'].sum().reset_index()
     global_top_artists = global_top_artists.nlargest(10, 'streams')
-    global_top_artists.to_csv(os.path.join(final_output_folder, "global_top_artists.csv"), index=False, encoding='utf-8-sig')
+    description = "전세계적으로 가장 많이 스트리밍된 아티스트 분석 결과"
+    save_csv_with_metadata(global_top_artists, os.path.join(final_output_folder, "global_top_artists.csv"), description)
 
     # 4. 월별 국가들 통틀어서 공통적으로 많이 등장하는 곡 분석
     # 월별로 가장 많이 스트리밍된 곡을 식별합니다.
@@ -223,7 +241,8 @@ def analyze_music_trends(final_output_folder):
     # - 월별로 전 세계적으로 가장 인기 있는 곡을 파악하여 해당 곡의 시장 영향력을 분석할 수 있습니다.
     track_streams = data.groupby(['Month', 'track_name'])['streams'].sum().reset_index()
     monthly_common_tracks = track_streams.groupby('Month').apply(lambda x: x.nlargest(10, 'streams')).reset_index(drop=True)
-    monthly_common_tracks.to_csv(os.path.join(final_output_folder, "monthly_common_tracks.csv"), index=False, encoding='utf-8-sig')
+    description = "월별 전세계적으로 가장 많이 스트리밍된 곡 분석 결과"
+    save_csv_with_metadata(monthly_common_tracks, os.path.join(final_output_folder, "monthly_common_tracks.csv"), description)
 
     # 5. 월별 국가들 통틀어서 공통적으로 많이 등장하는 아티스트 분석
     # 월별로 가장 많이 스트리밍된 아티스트를 식별합니다.
@@ -237,7 +256,8 @@ def analyze_music_trends(final_output_folder):
     # - 월별로 글로벌 음악 시장에서 가장 주목받는 아티스트를 분석할 수 있습니다.
     artist_streams_monthly = data.groupby(['Month', 'artist_names'])['streams'].sum().reset_index()
     monthly_common_artists = artist_streams_monthly.groupby('Month').apply(lambda x: x.nlargest(10, 'streams')).reset_index(drop=True)
-    monthly_common_artists.to_csv(os.path.join(final_output_folder, "monthly_common_artists.csv"), index=False, encoding='utf-8-sig')
+    description = "월별 전세계적으로 가장 많이 스트리밍된 아티스트 분석 결과"
+    save_csv_with_metadata(monthly_common_artists, os.path.join(final_output_folder, "monthly_common_artists.csv"), description)
 
     # 6. 월별 곡과 아티스트 통합 트렌드 분석
     # 월별로 가장 인기 있는 곡과 아티스트 데이터를 통합하여 저장합니다.
@@ -254,7 +274,8 @@ def analyze_music_trends(final_output_folder):
         monthly_common_tracks.assign(Type='Track', Name=monthly_common_tracks['track_name']).drop(columns=['track_name']),
         monthly_common_artists.assign(Type='Artist', Name=monthly_common_artists['artist_names']).drop(columns=['artist_names'])
     ])
-    combined_data.to_csv(os.path.join(final_output_folder, "monthly_common_tracks_and_artists.csv"), index=False, encoding='utf-8-sig')
+    description = "월별 전세계적으로 가장 많이 스트리밍된 곡과 아티스트 통합 분석 결과"
+    save_csv_with_metadata(combined_data, os.path.join(final_output_folder, "monthly_common_tracks_and_artists.csv"), description)
 
     print("분석 결과 저장 완료.")
 
