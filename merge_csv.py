@@ -164,7 +164,10 @@ def analyze_music_trends(final_output_folder):
     for cluster_id in sorted(clusters_kmeans['Cluster_KMeans'].unique()):
         countries = clusters_kmeans[clusters_kmeans['Cluster_KMeans'] == cluster_id]['Country'].tolist()
         mean_streams = cluster_analysis.loc[cluster_id, 'streams_mean'] if 'streams_mean' in cluster_analysis.columns else "N/A"
-        pattern_desc = f"클러스터 {cluster_id}는 평균 스트리밍 수가 {mean_streams:.2f}이며, 유사한 스트리밍 트렌드를 보이는 국가들로 구성되었습니다."
+        if isinstance(mean_streams, (int, float)):
+            pattern_desc = f"클러스터 {cluster_id}는 평균 스트리밍 수가 {mean_streams:.2f}이며, 유사한 스트리밍 트렌드를 보이는 국가들로 구성되었습니다."
+        else:
+            pattern_desc = f"클러스터 {cluster_id}는 평균 스트리밍 수가 N/A이며, 유사한 스트리밍 트렌드를 보이는 국가들로 구성되었습니다."
         insights.append(f"- 클러스터 {cluster_id}: {', '.join(countries)} ({pattern_desc})")
     
     insights.append("\n## DBSCAN 기반 클러스터")
