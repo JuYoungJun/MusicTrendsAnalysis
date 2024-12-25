@@ -60,16 +60,17 @@ def extract_date_from_filename(file_name):
 
 def save_csv_with_metadata(df, file_path, description):
     """
-    데이터프레임을 저장하면서 파일의 첫 줄에 설명을 추가합니다.
+    데이터프레임을 저장하면서 메타데이터를 별도 파일로 저장합니다.
 
     Args:
         df (pd.DataFrame): 저장할 데이터프레임
         file_path (str): 저장할 파일 경로
         description (str): 데이터 설명
     """
-    with open(file_path, 'w', encoding='utf-8-sig') as f:
-        f.write(f"# {description}\n")
-    df.to_csv(file_path, mode='a', index=False, encoding='utf-8-sig')
+    metadata_path = file_path.replace('.csv', '_metadata.txt')
+    with open(metadata_path, 'w', encoding='utf-8-sig') as f:
+        f.write(description)
+    df.to_csv(file_path, index=False, encoding='utf-8-sig')
 
 def merge_by_country(input_folder, intermediate_folder, final_output_folder):
     """
@@ -179,7 +180,7 @@ def analyze_music_trends(final_output_folder):
         이 함수는 데이터를 기반으로 여러 국가 및 월별 트렌드를 분석하고 결과를 CSV 파일로 저장합니다.
     """
     final_data_path = os.path.join(final_output_folder, "final_merged_data.csv")
-    data = pd.read_csv(final_data_path, low_memory=False, comment='#')
+    data = pd.read_csv(final_data_path, low_memory=False)
 
     if 'Date' not in data.columns:
         print("분석할 데이터에 'Date' 컬럼이 없습니다.")
