@@ -57,7 +57,7 @@ jobs:
       # 7. 변경된 파일 커밋 및 푸시
       - name: Commit and Push Changes
         env:
-          PAT: ${{ secrets.PAT }}  # Personal Access Token
+          PAT: ${{ secrets.PAT }}
         run: |
           git config --global user.name "JuYoungJun"
           git config --global user.email "kaks162@gmail.com"
