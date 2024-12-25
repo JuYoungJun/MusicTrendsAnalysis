@@ -131,6 +131,7 @@ def analyze_music_trends(final_output_folder):
     # 1. 국가별 월별 스트리밍 변화율 분석
     country_monthly_streams = data.groupby(['Country', 'Month'])['streams'].sum().reset_index()
     country_monthly_streams['change_rate'] = country_monthly_streams.groupby('Country')['streams'].pct_change() * 100
+    country_monthly_streams['change_rate'] = country_monthly_streams['change_rate'].round(2)  # 소수점 2자리로 제한
     country_monthly_streams_path = os.path.join(final_output_folder, "country_monthly_streams_with_rate.csv")
     country_monthly_streams.to_csv(country_monthly_streams_path, index=False, encoding='utf-8-sig')
 
@@ -179,8 +180,14 @@ def analyze_music_trends(final_output_folder):
     # 4. 주요 인사이트 도출 및 저장
     insights = []
 
+    # 요약 인사이트
+    insights.append("요약:")
+    total_streams = data['streams'].sum()
+    unique_countries = data['Country'].nunique()
+    insights.append(f"전 세계에서 총 {unique_countries}개의 국가가 스트리밍 데이터를 제공했으며, 총 스트리밍 수는 {total_streams:,}입니다.")
+
     # 국가별 변화율 인사이트
-    insights.append("국가별 월별 스트리밍 변화율 분석 결과 저장 경로:")
+    insights.append("\n국가별 월별 스트리밍 변화율 분석 결과 저장 경로:")
     insights.append(f"{country_monthly_streams_path}")
 
     # 클러스터링 인사이트
@@ -198,6 +205,7 @@ def analyze_music_trends(final_output_folder):
     insights.append("\n국가별 클러스터링 시각화 저장 경로:")
     insights.append(f"{cluster_plot_path}")
 
+    # 인사이트 저장
     insights_path = os.path.join(final_output_folder, "insights.txt")
     with open(insights_path, "w", encoding='utf-8') as f:
         f.write("\n".join(insights))
