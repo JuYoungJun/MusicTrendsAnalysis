@@ -25,17 +25,19 @@ def generate_insights(output_folder):
     """
     데이터를 분석하고 유의미한 인사이트를 도출합니다.
     Args:
-        output_folder (str): 분석 결과 데이터가 저장된 폴더 경로
-    결과물:
-        1. 국가별 스트리밍 트렌드 (최대/최소) 분석
-        2. 인기 곡 및 아티스트의 스트리밍 트렌드 분석
-        3. 로컬 및 글로벌 아티스트 겹침 분석
-        4. 월별 트렌드 비교 시각화
+        output_folder (str): 분석 결과 데이터가 저장될 폴더 경로
     """
-    # 폴더 생성
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
         print(f"결과 폴더 생성 완료: {output_folder}")
+
+    # 결과 저장 경로 디버깅
+    output_files = [
+        os.path.join(output_folder, "country_stream_trends.png"),
+        os.path.join(output_folder, "artist_comparison.png"),
+        os.path.join(output_folder, "monthly_trends.png"),
+        os.path.join(output_folder, "top_tracks_artists.png"),
+    ]
 
     # 1. 국가별 스트리밍 최대/최소 트렌드 분석
     max_stream_path = os.path.join(output_folder, "max_stream_month.csv")
@@ -52,7 +54,7 @@ def generate_insights(output_folder):
         plt.xlabel("국가")
         plt.ylabel("스트리밍 수")
         plt.legend()
-        plt.savefig(os.path.join(output_folder, "country_stream_trends.png"))
+        plt.savefig(output_files[0])
         plt.close()
 
     # 2. 인기 아티스트 분석 (로컬 vs 글로벌)
@@ -69,7 +71,7 @@ def generate_insights(output_folder):
         plt.figure(figsize=(8, 8))
         venn = venn2([local_artists, global_artists], ('로컬 인기 아티스트', '글로벌 인기 아티스트'))
         plt.title("로컬과 글로벌 인기 아티스트 비교")
-        plt.savefig(os.path.join(output_folder, "artist_comparison.png"))
+        plt.savefig(output_files[1])
         plt.close()
 
     # 3. 월별 인기 곡/아티스트 트렌드 분석
@@ -88,7 +90,7 @@ def generate_insights(output_folder):
         plt.xlabel("월")
         plt.ylabel("스트리밍 수")
         plt.legend()
-        plt.savefig(os.path.join(output_folder, "monthly_trends.png"))
+        plt.savefig(output_files[2])
         plt.close()
 
     # 4. 전세계 스트리밍 상위 곡/아티스트 비교
@@ -112,8 +114,15 @@ def generate_insights(output_folder):
         axes[1].invert_yaxis()
 
         plt.tight_layout()
-        plt.savefig(os.path.join(output_folder, "top_tracks_artists.png"))
+        plt.savefig(output_files[3])
         plt.close()
+
+    # 생성된 파일 디버깅
+    for file in output_files:
+        if os.path.exists(file):
+            print(f"파일 생성 확인: {file}")
+        else:
+            print(f"파일 생성 실패: {file}")
 
     print("모든 분석 및 시각화 완료.")
 
