@@ -196,7 +196,8 @@ def analyze_music_trends(final_output_folder):
     cluster_averages = pivot_table.T.groupby(kmeans.labels_).mean()
     plt.figure(figsize=(12, 6))
     for cluster_id in cluster_averages.index:
-        plt.plot(cluster_averages.columns, cluster_averages.loc[cluster_id], label=f'클러스터 {cluster_id}')
+        columns_as_str = cluster_averages.columns.astype(str)  # Period를 문자열로 변환
+        plt.plot(columns_as_str, cluster_averages.loc[cluster_id], label=f'클러스터 {cluster_id}')
     plt.title('클러스터별 평균 스트리밍 수')
     plt.xlabel('월')
     plt.ylabel('평균 스트리밍 수')
