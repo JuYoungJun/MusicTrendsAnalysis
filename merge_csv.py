@@ -313,13 +313,37 @@ def generate_insights(output_folder):
         global_artists = pd.read_csv(global_artists_file)
         insights.append(f"글로벌 공통 인기 아티스트는 {', '.join(global_artists['Global_Artists'].head(5))} 등입니다.")
 
-    # 인사이트 저장
-    insights_file = os.path.join(output_folder, "insights_summary.txt")
-    with open(insights_file, "w", encoding="utf-8-sig") as f:
-        for insight in insights:
-            f.write(insight + "\n")
+    # 인사이트 도출
+def generate_insights(output_folder):
+    """
+    모든 분석 결과를 종합하여 주요 인사이트를 도출합니다.
+    """
+    insights = []
 
-    print("인사이트 도출 완료. 주요 결과가 insights_summary.txt에 저장되었습니다.")
+    try:
+        max_streams_file = os.path.join(output_folder, "max_streams_by_month.csv")
+        if os.path.exists(max_streams_file):
+            max_streams = pd.read_csv(max_streams_file)
+            top_country = max_streams.loc[max_streams['Max_Streams'].idxmax()]
+            insights.append(f"스트리밍이 가장 많은 국가는 {top_country['Country']}이며, 가장 많이 스트리밍된 월은 {top_country['Month']}입니다.")
+
+        low_streams_file = os.path.join(output_folder, "global_low_stream_month.csv")
+        if os.path.exists(low_streams_file):
+            low_streams = pd.read_csv(low_streams_file)
+            insights.append(f"전 세계적으로 스트리밍이 가장 낮은 달은 {low_streams['Month'].values[0]}입니다.")
+
+        global_artists_file = os.path.join(output_folder, "global_common_artists.csv")
+        if os.path.exists(global_artists_file):
+            global_artists = pd.read_csv(global_artists_file)
+            insights.append(f"글로벌 공통 인기 아티스트는 {', '.join(global_artists['Global_Artists'].head(5))} 등입니다.")
+
+        with open(os.path.join(output_folder, "insights_summary.txt"), "w", encoding="utf-8-sig") as f:
+            for insight in insights:
+                f.write(insight + "\n")
+
+        print("인사이트 도출 완료. 주요 결과가 insights_summary.txt에 저장되었습니다.")
+    except Exception as e:
+        print(f"인사이트 생성 중 오류 발생: {e}")
 
 if __name__ == "__main__":
     input_folder = "./spotify_data"
