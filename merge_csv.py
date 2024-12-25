@@ -4,6 +4,7 @@ import numpy as np
 import re
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 
 # 파일 이름에서 국가 코드 추출
 def extract_country_from_filename(file_name):
@@ -140,6 +141,33 @@ def analyze_music_trends(final_output_folder):
     clusters_path = os.path.join(final_output_folder, "country_clusters.csv")
     clusters.to_csv(clusters_path, index=False, encoding='utf-8-sig')
 
+    # 클러스터링 시각화 (PCA를 사용하여 2D로 변환)
+    pca = PCA(n_components=2)
+    reduced_data = pca.fit_transform(pivot_table.T)
+    plt.figure(figsize=(12, 6))
+
+    # 원본 데이터 시각화
+    plt.subplot(1, 2, 1)
+    plt.scatter(reduced_data[:, 0], reduced_data[:, 1], c='blue', label='Original Data', alpha=0.6)
+    plt.title('Original Data (Unclustered)')
+    plt.xlabel('PCA Component 1')
+    plt.ylabel('PCA Component 2')
+    plt.legend()
+
+    # 클러스터링된 데이터 시각화
+    plt.subplot(1, 2, 2)
+    for cluster_id in range(kmeans.n_clusters):
+        cluster_points = reduced_data[kmeans.labels_ == cluster_id]
+        plt.scatter(cluster_points[:, 0], cluster_points[:, 1], label=f'Cluster {cluster_id}', alpha=0.6)
+    plt.title('Clustered Data')
+    plt.xlabel('PCA Component 1')
+    plt.ylabel('PCA Component 2')
+    plt.legend()
+
+    cluster_plot_path = os.path.join(final_output_folder, "country_clusters_visualization.png")
+    plt.savefig(cluster_plot_path)
+    plt.close()
+
     # 3. 월별 상위 곡의 지속성 분석
     top_tracks = data.groupby(['Month', 'track_name'])['streams'].sum().reset_index()
     top_tracks = top_tracks.sort_values(['Month', 'streams'], ascending=[True, False])
@@ -148,7 +176,7 @@ def analyze_music_trends(final_output_folder):
     top_tracks_path = os.path.join(final_output_folder, "top_tracks_by_month.csv")
     top_tracks.to_csv(top_tracks_path, index=False, encoding='utf-8-sig')
 
-    # 4. 주요 인사이트 도출 및 시각화 저장
+    # 4. 주요 인사이트 도출 및 저장
     insights = []
 
     # 국가별 변화율 인사이트
@@ -166,20 +194,16 @@ def analyze_music_trends(final_output_folder):
     insights.append("\n월별 상위 5곡 지속성 분석 결과 저장 경로:")
     insights.append(f"{top_tracks_path}")
 
+    # 클러스터링 시각화 경로
+    insights.append("\n국가별 클러스터링 시각화 저장 경로:")
+    insights.append(f"{cluster_plot_path}")
+
     insights_path = os.path.join(final_output_folder, "insights.txt")
     with open(insights_path, "w", encoding='utf-8') as f:
         f.write("\n".join(insights))
 
     print("\n주요 인사이트:")
     print("\n".join(insights))
-
-    # 클러스터링 결과 시각화
-    plt.figure(figsize=(10, 6))
-    plt.bar(cluster_summary.index, cluster_summary.apply(len), color='skyblue')
-    plt.xlabel('Cluster')
-    plt.ylabel('Number of Countries')
-    plt.title('Number of Countries per Cluster')
-    plt.savefig(os.path.join(final_output_folder, "country_clusters.png"))
 
 if __name__ == "__main__":
     input_folder = "./spotify_data"
