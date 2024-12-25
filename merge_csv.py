@@ -234,7 +234,7 @@ def analyze_music_trends(final_output_folder):
     # 활용법:
     # - 국가별로 인기 있는 가수와 글로벌 인기 가수를 비교하여 음악 소비 트렌드를 분석할 수 있습니다.
     artist_streams = data.groupby(['Country', 'artist_names'])['streams'].sum().reset_index()
-    top_artists = artist_streams.groupby('Country').apply(lambda x: x.nlargest(5, 'streams'))
+    top_artists = artist_streams.groupby('Country').apply(lambda x: x.nlargest(5, 'streams')).reset_index(drop=True)
     description = "국가별 가장 많이 스트리밍된 아티스트 분석 결과"
     save_csv_with_metadata(top_artists, os.path.join(final_output_folder, "top_artists_by_country.csv"), description)
 
@@ -244,18 +244,19 @@ def analyze_music_trends(final_output_folder):
     save_csv_with_metadata(global_top_artists, os.path.join(final_output_folder, "global_top_artists.csv"), description)
 
     # 4. 월별 국가들 통틀어서 공통적으로 많이 등장하는 곡 분석
-    # 월별로 가장 많이 스트리밍된 곡을 식별합니다.
+    # 월별로 가장 많이 스트리밍된 곡과 해당 가수를 식별합니다.
     # 
     # 컬럼 설명:
     # - Month: 월 정보
     # - track_name: 곡 이름
+    # - artist_names: 아티스트 이름
     # - streams: 스트리밍 수
     # 
     # 활용법:
-    # - 월별로 전 세계적으로 가장 인기 있는 곡을 파악하여 해당 곡의 시장 영향력을 분석할 수 있습니다.
-    track_streams = data.groupby(['Month', 'track_name'])['streams'].sum().reset_index()
+    # - 월별로 전 세계적으로 가장 인기 있는 곡과 가수를 파악하여 시장 영향력을 분석할 수 있습니다.
+    track_streams = data.groupby(['Month', 'track_name', 'artist_names'])['streams'].sum().reset_index()
     monthly_common_tracks = track_streams.groupby('Month').apply(lambda x: x.nlargest(10, 'streams')).reset_index(drop=True)
-    description = "월별 전세계적으로 가장 많이 스트리밍된 곡 분석 결과"
+    description = "월별 전세계적으로 가장 많이 스트리밍된 곡과 가수 분석 결과"
     save_csv_with_metadata(monthly_common_tracks, os.path.join(final_output_folder, "monthly_common_tracks.csv"), description)
 
     # 5. 월별 국가들 통틀어서 공통적으로 많이 등장하는 아티스트 분석
@@ -278,15 +279,15 @@ def analyze_music_trends(final_output_folder):
     # 
     # 컬럼 설명:
     # - Month: 월 정보
-    # - Name: 곡 이름 또는 아티스트 이름
-    # - Type: 이름의 유형 (Track 또는 Artist)
+    # - track_name: 곡 이름
+    # - artist_names: 아티스트 이름
     # - streams: 스트리밍 수
     # 
     # 활용법:
     # - 곡과 아티스트를 통합적으로 분석하여 글로벌 트렌드와 시장의 변화를 한눈에 파악할 수 있습니다.
     combined_data = pd.concat([
-        monthly_common_tracks.assign(Type='Track', Name=monthly_common_tracks['track_name']).drop(columns=['track_name']),
-        monthly_common_artists.assign(Type='Artist', Name=monthly_common_artists['artist_names']).drop(columns=['artist_names'])
+        monthly_common_tracks.rename(columns={'track_name': 'Name', 'artist_names': 'Artist'}),
+        monthly_common_artists.rename(columns={'artist_names': 'Name'}).assign(Artist=lambda x: x['Name'])
     ])
     description = "월별 전세계적으로 가장 많이 스트리밍된 곡과 아티스트 통합 분석 결과"
     save_csv_with_metadata(combined_data, os.path.join(final_output_folder, "monthly_common_tracks_and_artists.csv"), description)
