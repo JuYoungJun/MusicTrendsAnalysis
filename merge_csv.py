@@ -158,14 +158,14 @@ def analyze_music_trends(final_output_folder):
     country_monthly_streams_path = os.path.join(final_output_folder, "country_monthly_streams_with_rate.csv")
     country_monthly_streams.to_csv(country_monthly_streams_path, index=False, encoding='utf-8-sig')
 
-    plt.figure(figsize=(12, 8))
+    plt.figure(figsize=(15, 10))
     for country in country_monthly_streams['Country'].unique():
         subset = country_monthly_streams[country_monthly_streams['Country'] == country]
         plt.plot(subset['Month'].astype(str), subset['change_rate'], label=country)
     plt.title('국가별 월별 스트리밍 변화율')
     plt.xlabel('월')
     plt.ylabel('변화율 (%)')
-    plt.legend()
+    plt.legend(loc='upper right', bbox_to_anchor=(1.2, 1))
     plt.xticks(rotation=45)
     change_rate_plot_path = os.path.join(final_output_folder, "1_change_rate_by_country.png")
     plt.savefig(change_rate_plot_path, dpi=300, bbox_inches='tight')
@@ -180,25 +180,24 @@ def analyze_music_trends(final_output_folder):
 
     pca = PCA(n_components=2)
     reduced_data = pca.fit_transform(pivot_table.T)
-    plt.figure(figsize=(10, 10))
+    plt.figure(figsize=(12, 12))
     for cluster_id in range(kmeans.n_clusters):
         cluster_points = reduced_data[kmeans.labels_ == cluster_id]
         plt.scatter(cluster_points[:, 0], cluster_points[:, 1], label=f'클러스터 {cluster_id}')
-    plt.title('국가 클러스터링 시각화')
-    plt.xlabel('PCA 구성요소 1')
-    plt.ylabel('PCA 구성요소 2')
-    plt.legend()
+    plt.title('국가별 스트리밍 소비 패턴 클러스터링')
+    plt.xlabel('소비 패턴 축 1')
+    plt.ylabel('소비 패턴 축 2')
+    plt.legend(loc='upper right')
     cluster_visualization_path = os.path.join(final_output_folder, "2_country_clustering_visualization.png")
     plt.savefig(cluster_visualization_path, dpi=300, bbox_inches='tight')
     plt.close()
 
     # 클러스터별 평균 스트리밍 수 시각화
     cluster_averages = pivot_table.T.groupby(kmeans.labels_).mean()
-    plt.figure(figsize=(12, 6))
+    plt.figure(figsize=(14, 8))
     for cluster_id in cluster_averages.index:
-        columns_as_str = cluster_averages.columns.astype(str)  # Period를 문자열로 변환
-        plt.plot(columns_as_str, cluster_averages.loc[cluster_id], label=f'클러스터 {cluster_id}')
-    plt.title('클러스터별 평균 스트리밍 수')
+        plt.plot(cluster_averages.columns.astype(str), cluster_averages.loc[cluster_id], label=f'클러스터 {cluster_id}')
+    plt.title('클러스터별 평균 스트리밍 수 변화')
     plt.xlabel('월')
     plt.ylabel('평균 스트리밍 수')
     plt.legend()
@@ -214,29 +213,32 @@ def analyze_music_trends(final_output_folder):
     top_tracks_path = os.path.join(final_output_folder, "top_tracks_by_month.csv")
     top_tracks.to_csv(top_tracks_path, index=False, encoding='utf-8-sig')
 
-    plt.figure(figsize=(14, 8))
+    plt.figure(figsize=(20, 12))
     for month in top_tracks['Month'].unique():
         subset = top_tracks[top_tracks['Month'] == month]
         plt.bar(subset['track_name'], subset['streams'], label=str(month))
     plt.title('월별 상위 곡 스트리밍 수')
     plt.xlabel('곡 이름')
     plt.ylabel('스트리밍 수')
-    plt.xticks(rotation=45, fontsize=10)
-    plt.legend()
+    plt.xticks(rotation=90, fontsize=8)
+    plt.legend(loc='upper right', bbox_to_anchor=(1.2, 1))
     top_tracks_plot_path = os.path.join(final_output_folder, "3_top_tracks_visualization.png")
     plt.savefig(top_tracks_plot_path, dpi=300, bbox_inches='tight')
     plt.close()
 
     # 인사이트 및 PDF 보고서 생성
     insights = [
-        f"분석한 국가 수: {data['Country'].nunique()}",
-        f"분석된 총 스트리밍 수: {data['streams'].sum():,}",
-        "\n클러스터링 결과:",
+        "# 분석 결과 보고서",
+        f"- 분석한 국가 수: {data['Country'].nunique()}",
+        f"- 총 스트리밍 수: {data['streams'].sum():,}",
+        "\n## 클러스터 분석 결과",
     ]
 
     cluster_summary = clusters.groupby('Cluster')['Country'].apply(list)
     for cluster, countries in cluster_summary.items():
-        insights.append(f"클러스터 {cluster}: {', '.join(countries)}")
+        insights.append(f"- 클러스터 {cluster} (국가): {', '.join(countries)}")
+
+    insights.append("\n- 클러스터별 소비 패턴과 특징을 도출하였으며, 각 클러스터는 유사한 월별 스트리밍 패턴을 나타냅니다.")
 
     report_pdf_path = os.path.join(final_output_folder, "music_trends_report.pdf")
     generate_report_pdf(
