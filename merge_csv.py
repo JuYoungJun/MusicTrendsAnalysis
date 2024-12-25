@@ -179,7 +179,7 @@ def analyze_music_trends(final_output_folder):
         이 함수는 데이터를 기반으로 여러 국가 및 월별 트렌드를 분석하고 결과를 CSV 파일로 저장합니다.
     """
     final_data_path = os.path.join(final_output_folder, "final_merged_data.csv")
-    data = pd.read_csv(final_data_path, low_memory=False)
+    data = pd.read_csv(final_data_path, low_memory=False, comment='#')
 
     if 'Date' not in data.columns:
         print("분석할 데이터에 'Date' 컬럼이 없습니다.")
