@@ -1,0 +1,11 @@
+국가별로 스트리밍이 가장 많았던 월:
+결과 파일 경로: ./final_data/max_stream_month_per_country.csv
+
+전세계적으로 음악 소비가 가장 낮았던 달: 2024-12
+결과 파일 경로: ./final_data/global_monthly_streams.csv
+
+특정 국가에서만 인기 있는 가수 수: 6069명
+결과 파일 경로: ./final_data/unique_to_one_country.csv
+
+전세계 모든 국가에서 인기 있는 공통 가수 수: 10명
+결과 파일 경로: ./final_data/global_artists.csv
