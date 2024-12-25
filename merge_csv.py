@@ -24,7 +24,13 @@ def extract_date_from_filename(file_name):
     """
     parts = file_name.split('-')
     if len(parts) > 3:
-        return parts[-1].split('.')[0]
+        date_part = parts[-1].split('.')[0]
+        try:
+            # 날짜 검증
+            pd.to_datetime(date_part, format="%Y-%m-%d")
+            return date_part
+        except ValueError:
+            return "INVALID_DATE"
     return "UNKNOWN"
 
 # 데이터 병합 및 저장
@@ -51,6 +57,11 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
         file_name = os.path.basename(file_path)
         country = extract_country_from_filename(file_name)
         date = extract_date_from_filename(file_name)
+        
+        if date == "INVALID_DATE":
+            print(f"잘못된 날짜 형식 발견: {file_name}, 파일을 건너뜁니다.")
+            continue
+
         df = pd.read_csv(file_path)
         df['country'] = country
         df['date'] = date
@@ -68,6 +79,14 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
         data.to_csv(country_csv, index=False, encoding='utf-8-sig')
 
     merged_data = pd.concat(country_data.values(), ignore_index=True)
+
+    # 날짜 열 검증 및 변환
+    try:
+        merged_data['date'] = pd.to_datetime(merged_data['date'], format="%Y-%m-%d", errors='coerce')
+        merged_data = merged_data.dropna(subset=['date'])
+    except Exception as e:
+        print(f"날짜 변환 중 오류 발생: {e}")
+
     merged_data.to_csv(os.path.join(final_output_folder, "final_merged_data.csv"), index=False, encoding='utf-8-sig')
 
     print("병합 및 저장이 완료되었습니다.")
