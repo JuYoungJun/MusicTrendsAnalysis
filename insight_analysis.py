@@ -21,27 +21,23 @@ setup_korean_font()
 
 def visualize_country_stream_trends(max_stream_path, min_stream_path, output_path):
     """
-    국가별 최대 및 최소 스트리밍 데이터를 시각화합니다 (선 그래프).
+    국가별 최대 및 최소 스트리밍 데이터를 시각화합니다 (그룹화된 막대 그래프).
     """
     if os.path.exists(max_stream_path) and os.path.exists(min_stream_path):
         max_df = pd.read_csv(max_stream_path)
         min_df = pd.read_csv(min_stream_path)
 
-        merged_df = pd.merge(max_df, min_df, on=['Country', 'Month'], suffixes=('_max', '_min'))
-        merged_df['Month'] = pd.to_datetime(merged_df['Month'])
-        merged_df = merged_df.sort_values(by='Month')
+        max_df['Type'] = '최대'
+        min_df['Type'] = '최소'
+        combined_df = pd.concat([max_df, min_df], ignore_index=True)
 
-        plt.figure(figsize=(14, 8))
-        for country in merged_df['Country'].unique():
-            country_data = merged_df[merged_df['Country'] == country]
-            plt.plot(country_data['Month'], country_data['streams_max'] / 1e6, label=f'{country} 최대', linestyle='-', marker='o')
-            plt.plot(country_data['Month'], country_data['streams_min'] / 1e6, label=f'{country} 최소', linestyle='--', marker='x')
-
+        plt.figure(figsize=(16, 10))
+        sns.barplot(data=combined_df, x='Country', y='streams', hue='Type', ci=None)
         plt.title("국가별 최대 및 최소 스트리밍 트렌드", fontsize=16)
-        plt.xlabel("월", fontsize=14)
-        plt.ylabel("스트리밍 수 (백만)", fontsize=14)
-        plt.legend(fontsize=12, loc='upper left')
-        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.xlabel("국가", fontsize=14)
+        plt.ylabel("스트리밍 수", fontsize=14)
+        plt.xticks(rotation=45)
+        plt.legend(title="유형", fontsize=12)
         plt.tight_layout()
         plt.savefig(output_path)
         plt.close()
@@ -54,16 +50,14 @@ def visualize_global_trends_heatmap(data, output_path):
     월별 인기 곡/아티스트의 스트리밍 수를 히트맵으로 시각화합니다.
     """
     pivot_data = data.pivot(index='Name', columns='Month', values='streams').fillna(0)
-    top_items = pivot_data.sum(axis=1).nlargest(10).index
-    filtered_data = pivot_data.loc[top_items]
+    pivot_data.columns = pd.to_datetime(pivot_data.columns)
+    pivot_data = pivot_data.sort_index(axis=1)
 
     plt.figure(figsize=(14, 10))
     sns.heatmap(
-        filtered_data,
-        annot=True,
-        fmt=".0f",
+        pivot_data,
         cmap="YlGnBu",
-        cbar_kws={"label": "스트리밍 수 (백만)"},
+        cbar_kws={"label": "스트리밍 수"},
         linewidths=0.5
     )
     plt.title("월별 인기 곡/아티스트 스트리밍 히트맵", fontsize=16)
@@ -76,22 +70,24 @@ def visualize_global_trends_heatmap(data, output_path):
 
 def visualize_artist_overlap(local_artists, global_artists, output_path):
     """
-    로컬 및 글로벌 아티스트 비교 비율을 시각화합니다 (파이 차트).
+    로컬 및 글로벌 아티스트 비교 비율을 시각화합니다 (스택형 바 차트).
     """
     overlap_count = len(local_artists & global_artists)
     local_only_count = len(local_artists - global_artists)
     global_only_count = len(global_artists - local_artists)
 
-    labels = ['겹치는 아티스트', '로컬 전용', '글로벌 전용']
-    sizes = [overlap_count, local_only_count, global_only_count]
+    categories = ['겹치는 아티스트', '로컬 전용', '글로벌 전용']
+    counts = [overlap_count, local_only_count, global_only_count]
 
-    plt.figure(figsize=(8, 8))
-    plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90, colors=['green', 'blue', 'orange'])
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x=categories, y=counts, palette=['green', 'blue', 'orange'])
     plt.title("로컬 및 글로벌 아티스트 비교", fontsize=16)
+    plt.xlabel("유형", fontsize=14)
+    plt.ylabel("아티스트 수", fontsize=14)
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close()
-    print(f"아티스트 비교 파이 차트 저장 완료: {output_path}")
+    print(f"아티스트 비교 시각화 저장 완료: {output_path}")
 
 if __name__ == "__main__":
     # 파일 경로 정의
