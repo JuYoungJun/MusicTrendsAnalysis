@@ -106,7 +106,7 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
             print(f"유효하지 않은 날짜 형식: {file_name}, 건너뜁니다.")
             continue
 
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file_path, low_memory=False)
         if 'artist_names' not in df.columns or 'track_name' not in df.columns:
             print(f"필수 컬럼 누락: {file_name}, 건너뜁니다.")
             continue
@@ -128,6 +128,10 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
         save_csv_with_metadata(data, country_csv, description)
 
     merged_data = pd.concat(country_data.values(), ignore_index=True)
+
+    if 'Date' not in merged_data.columns:
+        raise KeyError("'Date' 컬럼이 병합된 데이터에 존재하지 않습니다.")
+
     merged_data['Date'] = pd.to_datetime(merged_data['Date'], errors='coerce')
     merged_data = merged_data.dropna(subset=['Date'])
 
@@ -173,7 +177,11 @@ def analyze_music_trends(final_output_folder):
         이 함수는 데이터를 기반으로 여러 국가 및 월별 트렌드를 분석하고 결과를 CSV 파일로 저장합니다.
     """
     final_data_path = os.path.join(final_output_folder, "final_merged_data.csv")
-    data = pd.read_csv(final_data_path)
+    data = pd.read_csv(final_data_path, low_memory=False)
+
+    if 'Date' not in data.columns:
+        raise KeyError("'Date' 컬럼이 분석 데이터에 존재하지 않습니다.")
+
     data['Date'] = pd.to_datetime(data['Date'])
     data['Month'] = data['Date'].dt.to_period('M')
 
