@@ -38,6 +38,7 @@ jobs:
     - name: Run insights analysis
       run: |
         python insight_analysis.py
+        ls -R insights/ || echo "insights 폴더가 비어있거나 생성되지 않았습니다."
 
     # 6. 결과물을 아티팩트로 업로드
     - name: Upload results
@@ -45,6 +46,7 @@ jobs:
       with:
         name: analysis-results
         path: insights/**
+        if-no-files-found: error
 
     # 7. 변경된 파일 커밋 및 푸시
     - name: Commit and Push Changes
@@ -54,6 +56,10 @@ jobs:
         git config --global user.name "JuYoungJun"
         git config --global user.email "kaks162@gmail.com"
         git remote set-url origin https://JuYoungJun:${{ secrets.PAT }}@github.com/JuYoungJun/MusicTrendsAnalysis.git
-        git add insights/** || echo "No files to add"
-        git commit -m "Automated insights analysis upload" || echo "No changes to commit"
-        git push origin HEAD:main
+        if [ -d "insights" ] && [ "$(ls -A insights)" ]; then
+          git add insights/** || echo "No files to add"
+          git commit -m "Automated insights analysis upload" || echo "No changes to commit"
+          git push origin HEAD:main
+        else
+          echo "insights 폴더가 비어있어서 커밋하지 않습니다."
+        fi
