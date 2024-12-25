@@ -1,6 +1,9 @@
 import os
 import pandas as pd
+import numpy as np
 import re
+from sklearn.cluster import KMeans
+import matplotlib.pyplot as plt
 
 # 파일 이름에서 국가 코드 추출
 def extract_country_from_filename(file_name):
@@ -106,15 +109,15 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
 # 데이터 분석 알고리즘 추가
 def analyze_music_trends(final_output_folder):
     """
-    국가별 및 전세계 음악 스트리밍 데이터를 분석합니다.
+    음악 스트리밍 데이터를 분석하여 트렌드를 도출합니다.
     - Input: 최종 병합 데이터가 저장된 폴더 경로
     - Output: 분석 결과 출력 및 저장
 
     분석 항목:
-      1. 국가별 월별 총 스트리밍 합계 분석
-      2. 국가별 인기 아티스트 분석
-      3. 월별 전세계적으로 가장 인기 있는 곡 분석
-      4. 주요 인사이트 도출 및 저장
+      1. 국가별 월별 스트리밍 변화율 분석
+      2. 국가별 유사 음악 소비 패턴 클러스터링
+      3. 월별 상위 곡의 지속성 분석
+      4. 주요 인사이트 도출 및 시각화 저장
     """
     # 최종 병합 데이터 로드
     final_data_path = os.path.join(final_output_folder, "final_merged_data.csv")
@@ -124,34 +127,44 @@ def analyze_music_trends(final_output_folder):
     data['Date'] = pd.to_datetime(data['Date'], format="%Y-%m-%d")
     data['Month'] = data['Date'].dt.to_period('M')  # 월 단위로 그룹화하기 위해 Month 열 생성.
 
-    # 1. 국가별 월별 총 스트리밍 합계 분석
+    # 1. 국가별 월별 스트리밍 변화율 분석
     country_monthly_streams = data.groupby(['Country', 'Month'])['streams'].sum().reset_index()
-    country_monthly_streams_path = os.path.join(final_output_folder, "country_monthly_streams.csv")
+    country_monthly_streams['change_rate'] = country_monthly_streams.groupby('Country')['streams'].pct_change() * 100
+    country_monthly_streams_path = os.path.join(final_output_folder, "country_monthly_streams_with_rate.csv")
     country_monthly_streams.to_csv(country_monthly_streams_path, index=False, encoding='utf-8-sig')
 
-    # 2. 국가별 인기 아티스트 분석
-    popular_artists_by_country = data.groupby(['Country', 'artist_names'])['streams'].sum().reset_index()
-    popular_artists_by_country = popular_artists_by_country.sort_values(['Country', 'streams'], ascending=[True, False])
-    popular_artists_by_country_path = os.path.join(final_output_folder, "popular_artists_by_country.csv")
-    popular_artists_by_country.to_csv(popular_artists_by_country_path, index=False, encoding='utf-8-sig')
+    # 2. 국가별 유사 음악 소비 패턴 클러스터링
+    pivot_table = country_monthly_streams.pivot(index='Month', columns='Country', values='streams').fillna(0)
+    kmeans = KMeans(n_clusters=3, random_state=42).fit(pivot_table.T)
+    clusters = pd.DataFrame({'Country': pivot_table.columns, 'Cluster': kmeans.labels_})
+    clusters_path = os.path.join(final_output_folder, "country_clusters.csv")
+    clusters.to_csv(clusters_path, index=False, encoding='utf-8-sig')
 
-    # 3. 월별 전세계적으로 가장 인기 있는 곡 분석
-    global_top_tracks = data.groupby(['Month', 'track_name'])['streams'].sum().reset_index()
-    global_top_tracks = global_top_tracks.sort_values(['Month', 'streams'], ascending=[True, False])
-    global_top_tracks = global_top_tracks.groupby('Month').head(1)
-    global_top_tracks_path = os.path.join(final_output_folder, "global_top_tracks.csv")
-    global_top_tracks.to_csv(global_top_tracks_path, index=False, encoding='utf-8-sig')
+    # 3. 월별 상위 곡의 지속성 분석
+    top_tracks = data.groupby(['Month', 'track_name'])['streams'].sum().reset_index()
+    top_tracks = top_tracks.sort_values(['Month', 'streams'], ascending=[True, False])
+    top_tracks['rank'] = top_tracks.groupby('Month')['streams'].rank(ascending=False)
+    top_tracks = top_tracks[top_tracks['rank'] <= 5]  # 상위 5곡 필터링
+    top_tracks_path = os.path.join(final_output_folder, "top_tracks_by_month.csv")
+    top_tracks.to_csv(top_tracks_path, index=False, encoding='utf-8-sig')
 
-    # 4. 주요 인사이트 도출 및 저장
+    # 4. 주요 인사이트 도출 및 시각화 저장
     insights = []
-    insights.append("국가별 월별 스트리밍 합계 분석 결과 저장 경로:")
+
+    # 국가별 변화율 인사이트
+    insights.append("국가별 월별 스트리밍 변화율 분석 결과 저장 경로:")
     insights.append(f"{country_monthly_streams_path}")
 
-    insights.append("\n국가별 인기 아티스트 분석 결과 저장 경로:")
-    insights.append(f"{popular_artists_by_country_path}")
+    # 클러스터링 인사이트
+    cluster_summary = clusters.groupby('Cluster')['Country'].apply(list)
+    insights.append("\n국가별 유사 음악 소비 패턴 클러스터링 결과:")
+    for cluster, countries in cluster_summary.items():
+        insights.append(f"클러스터 {cluster}: {', '.join(countries)}")
+    insights.append(f"결과 파일 경로: {clusters_path}")
 
-    insights.append("\n월별 전세계적으로 가장 인기 있는 곡 분석 결과 저장 경로:")
-    insights.append(f"{global_top_tracks_path}")
+    # 상위 곡 지속성 인사이트
+    insights.append("\n월별 상위 5곡 지속성 분석 결과 저장 경로:")
+    insights.append(f"{top_tracks_path}")
 
     insights_path = os.path.join(final_output_folder, "insights.txt")
     with open(insights_path, "w", encoding='utf-8') as f:
@@ -159,6 +172,14 @@ def analyze_music_trends(final_output_folder):
 
     print("\n주요 인사이트:")
     print("\n".join(insights))
+
+    # 클러스터링 결과 시각화
+    plt.figure(figsize=(10, 6))
+    plt.bar(cluster_summary.index, cluster_summary.apply(len), color='skyblue')
+    plt.xlabel('Cluster')
+    plt.ylabel('Number of Countries')
+    plt.title('Number of Countries per Cluster')
+    plt.savefig(os.path.join(final_output_folder, "country_clusters.png"))
 
 if __name__ == "__main__":
     input_folder = "./spotify_data"
