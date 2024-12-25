@@ -24,7 +24,7 @@ jobs:
       # 의존성 설치
       - name: Install dependencies
         run: |
-          pip install pandas jinja2
+          pip install pandas jinja2 numpy scikit-learn matplotlib
 
       # 디버깅: 환경 확인
       - name: Debug Environment
