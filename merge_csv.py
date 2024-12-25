@@ -3,10 +3,10 @@ import pandas as pd
 import numpy as np
 import re
 from sklearn.cluster import KMeans
+from sklearn.cluster import DBSCAN
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from matplotlib import font_manager
-from matplotlib.backends.backend_pdf import PdfPages
 
 # 한글 폰트 설정 함수
 def setup_korean_font():
@@ -29,8 +29,6 @@ def extract_country_from_filename(file_name):
     """
     파일 이름에서 국가 코드를 추출합니다.
     예: regional-au-weekly-2023-06-15.csv -> AU
-    - Input: 파일 이름 (str)
-    - Output: 국가 코드 (str)
     """
     parts = file_name.split('-')
     if len(parts) > 1:
@@ -41,8 +39,6 @@ def extract_date_from_filename(file_name):
     """
     파일 이름에서 날짜를 추출합니다.
     예: regional-au-weekly-2023-06-15.csv -> 2023-06-15
-    - Input: 파일 이름 (str)
-    - Output: 날짜 (str)
     """
     match = re.search(r"\d{4}-\d{2}-\d{2}", file_name)
     if match:
@@ -58,14 +54,6 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
     """
     국가별 CSV 파일을 병합하여 단일 데이터셋으로 만듭니다.
     중간 및 최종 결과를 저장합니다.
-    - Input: CSV 파일 경로 (input_folder)
-    - Output: 병합된 데이터 저장 (final_output_folder)
-
-    컬럼 설명:
-    - Country: 국가 코드
-    - Date: 데이터 기록 날짜
-    - streams: 스트리밍 횟수
-    - 기타 원본 데이터 컬럼 유지
     """
     csv_files = []
     for root, _, files in os.walk(input_folder):
@@ -110,41 +98,10 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
     merged_data.to_csv(os.path.join(final_output_folder, "final_merged_data.csv"), index=False, encoding='utf-8-sig')
     print("데이터 병합 및 저장 완료.")
 
-def generate_report_pdf(insights, plots, output_path):
-    """
-    PDF 보고서를 생성합니다.
-    - Input:
-      - insights: 분석 결과 텍스트
-      - plots: 시각화 이미지 경로 목록
-      - output_path: PDF 저장 경로
-    """
-    with PdfPages(output_path) as pdf:
-        # 텍스트 페이지 추가
-        plt.figure(figsize=(8.5, 11))
-        plt.axis('off')
-        plt.text(0, 1, "\n".join(insights), fontsize=12, va='top', wrap=True)
-        pdf.savefig()
-        plt.close()
-
-        # 각 시각화 이미지 추가
-        for plot_path in plots:
-            img = plt.imread(plot_path)
-            plt.figure(figsize=(8.5, 11))
-            plt.imshow(img)
-            plt.axis('off')
-            pdf.savefig()
-            plt.close()
-
 def analyze_music_trends(final_output_folder):
     """
     음악 스트리밍 데이터를 분석하여 트렌드를 도출합니다.
     분석 결과를 저장하고 시각화합니다.
-
-    컬럼 설명 및 분석 목적:
-    - Country: 국가 코드
-    - Month: 월별 데이터 그룹화
-    - streams: 월별 스트리밍 횟수
-    - change_rate: 월별 스트리밍 변화율
     """
     final_data_path = os.path.join(final_output_folder, "final_merged_data.csv")
     data = pd.read_csv(final_data_path)
@@ -155,104 +112,69 @@ def analyze_music_trends(final_output_folder):
     country_monthly_streams = data.groupby(['Country', 'Month'])['streams'].sum().reset_index()
     country_monthly_streams['change_rate'] = country_monthly_streams.groupby('Country')['streams'].pct_change() * 100
     country_monthly_streams['change_rate'] = country_monthly_streams['change_rate'].round(2)
-    country_monthly_streams_path = os.path.join(final_output_folder, "country_monthly_streams_with_rate.csv")
-    country_monthly_streams.to_csv(country_monthly_streams_path, index=False, encoding='utf-8-sig')
-
-    plt.figure(figsize=(15, 10))
-    for country in country_monthly_streams['Country'].unique():
-        subset = country_monthly_streams[country_monthly_streams['Country'] == country]
-        plt.plot(subset['Month'].astype(str), subset['change_rate'], label=country)
-    plt.title('국가별 월별 스트리밍 변화율')
-    plt.xlabel('월')
-    plt.ylabel('변화율 (%)')
-    plt.legend(loc='upper right', bbox_to_anchor=(1.2, 1))
-    plt.xticks(rotation=45)
-    change_rate_plot_path = os.path.join(final_output_folder, "1_change_rate_by_country.png")
-    plt.savefig(change_rate_plot_path, dpi=300, bbox_inches='tight')
-    plt.close()
 
     # 2. 국가별 스트리밍 패턴 클러스터링
     pivot_table = country_monthly_streams.pivot(index='Month', columns='Country', values='streams').fillna(0)
-    kmeans = KMeans(n_clusters=3, random_state=42).fit(pivot_table.T)
-    clusters = pd.DataFrame({'Country': pivot_table.columns, 'Cluster': kmeans.labels_})
-    clusters_path = os.path.join(final_output_folder, "country_clusters.csv")
-    clusters.to_csv(clusters_path, index=False, encoding='utf-8-sig')
 
+    # KMeans 클러스터링
+    kmeans = KMeans(n_clusters=4, random_state=42).fit(pivot_table.T)
+    clusters_kmeans = pd.DataFrame({'Country': pivot_table.columns, 'Cluster_KMeans': kmeans.labels_})
+
+    # DBSCAN 클러스터링
+    dbscan = DBSCAN(eps=0.5, min_samples=2, metric='euclidean').fit(pivot_table.T)
+    clusters_dbscan = pd.DataFrame({'Country': pivot_table.columns, 'Cluster_DBSCAN': dbscan.labels_})
+
+    clusters = clusters_kmeans.merge(clusters_dbscan, on='Country')
+    clusters.to_csv(os.path.join(final_output_folder, "country_clusters.csv"), index=False, encoding='utf-8-sig')
+
+    # PCA를 이용한 시각화
     pca = PCA(n_components=2)
     reduced_data = pca.fit_transform(pivot_table.T)
     plt.figure(figsize=(12, 12))
-    for cluster_id in range(kmeans.n_clusters):
+    for cluster_id in np.unique(kmeans.labels_):
         cluster_points = reduced_data[kmeans.labels_ == cluster_id]
-        plt.scatter(cluster_points[:, 0], cluster_points[:, 1], label=f'클러스터 {cluster_id}')
+        plt.scatter(cluster_points[:, 0], cluster_points[:, 1], label=f'KMeans 클러스터 {cluster_id}')
     plt.title('국가별 스트리밍 소비 패턴 클러스터링')
-    plt.xlabel('소비 패턴 축 1')
-    plt.ylabel('소비 패턴 축 2')
-    plt.legend(loc='upper right')
-    cluster_visualization_path = os.path.join(final_output_folder, "2_country_clustering_visualization.png")
-    plt.savefig(cluster_visualization_path, dpi=300, bbox_inches='tight')
-    plt.close()
-
-    # 클러스터별 평균 스트리밍 수 시각화
-    cluster_averages = pivot_table.T.groupby(kmeans.labels_).mean()
-    plt.figure(figsize=(14, 8))
-    for cluster_id in cluster_averages.index:
-        plt.plot(cluster_averages.columns.astype(str), cluster_averages.loc[cluster_id], label=f'클러스터 {cluster_id}')
-    plt.title('클러스터별 평균 스트리밍 수 변화')
-    plt.xlabel('월')
-    plt.ylabel('평균 스트리밍 수')
+    plt.xlabel('소비 경향 차원 1 (스트리밍 패턴 비교)')
+    plt.ylabel('소비 경향 차원 2 (스트리밍 유사성)')
     plt.legend()
-    cluster_avg_visualization_path = os.path.join(final_output_folder, "2b_cluster_avg_visualization.png")
-    plt.savefig(cluster_avg_visualization_path, dpi=300, bbox_inches='tight')
+    plt.savefig(os.path.join(final_output_folder, "kmeans_clustering_visualization.png"), dpi=300, bbox_inches='tight')
     plt.close()
 
-    # 3. 월별 상위 곡 분석
-    top_tracks = data.groupby(['Month', 'track_name'])['streams'].sum().reset_index()
-    top_tracks = top_tracks.sort_values(['Month', 'streams'], ascending=[True, False])
-    top_tracks['rank'] = top_tracks.groupby('Month')['streams'].rank(ascending=False)
-    top_tracks = top_tracks[top_tracks['rank'] <= 5]
-    top_tracks_path = os.path.join(final_output_folder, "top_tracks_by_month.csv")
-    top_tracks.to_csv(top_tracks_path, index=False, encoding='utf-8-sig')
-
-    plt.figure(figsize=(20, 12))
-    for month in top_tracks['Month'].unique():
-        subset = top_tracks[top_tracks['Month'] == month]
-        plt.bar(subset['track_name'], subset['streams'], label=str(month))
-    plt.title('월별 상위 곡 스트리밍 수')
-    plt.xlabel('곡 이름')
-    plt.ylabel('스트리밍 수')
-    plt.xticks(rotation=90, fontsize=8)
-    plt.legend(loc='upper right', bbox_to_anchor=(1.2, 1))
-    top_tracks_plot_path = os.path.join(final_output_folder, "3_top_tracks_visualization.png")
-    plt.savefig(top_tracks_plot_path, dpi=300, bbox_inches='tight')
+    plt.figure(figsize=(12, 12))
+    for cluster_id in np.unique(dbscan.labels_):
+        cluster_points = reduced_data[dbscan.labels_ == cluster_id]
+        plt.scatter(cluster_points[:, 0], cluster_points[:, 1], label=f'DBSCAN 클러스터 {cluster_id}')
+    plt.title('DBSCAN을 이용한 클러스터링')
+    plt.xlabel('소비 경향 차원 1 (스트리밍 패턴 비교)')
+    plt.ylabel('소비 경향 차원 2 (스트리밍 유사성)')
+    plt.legend()
+    plt.savefig(os.path.join(final_output_folder, "dbscan_clustering_visualization.png"), dpi=300, bbox_inches='tight')
     plt.close()
 
-    # 인사이트 및 PDF 보고서 생성
-    insights = [
-        "# 분석 결과 보고서",
-        f"- 분석한 국가 수: {data['Country'].nunique()}",
-        f"- 총 스트리밍 수: {data['streams'].sum():,}",
-        "\n## 클러스터 분석 결과",
-    ]
+    # 클러스터별 평균 스트리밍 분석
+    cluster_analysis = pivot_table.T.groupby(kmeans.labels_).agg(['mean', 'std', 'max'])
+    cluster_analysis.to_csv(os.path.join(final_output_folder, "cluster_analysis.csv"), encoding='utf-8-sig')
 
-    cluster_summary = clusters.groupby('Cluster')['Country'].apply(list)
-    for cluster, countries in cluster_summary.items():
-        insights.append(f"- 클러스터 {cluster} (국가): {', '.join(countries)}")
+    # 인사이트 도출
+    insights = []
+    insights.append("# 클러스터 분석 결과")
+    insights.append("\n## KMeans 기반 클러스터")
+    for cluster_id in sorted(clusters_kmeans['Cluster_KMeans'].unique()):
+        countries = clusters_kmeans[clusters_kmeans['Cluster_KMeans'] == cluster_id]['Country'].tolist()
+        pattern_desc = f"클러스터 {cluster_id}는 평균 스트리밍 수가 {cluster_analysis.loc[cluster_id, ('mean')].mean():.2f}이며, 주로 유사한 트렌드가 나타나는 국가들로 구성되었습니다."
+        insights.append(f"- 클러스터 {cluster_id}: {', '.join(countries)} ({pattern_desc})")
+    
+    insights.append("\n## DBSCAN 기반 클러스터")
+    for cluster_id in sorted(clusters_dbscan['Cluster_DBSCAN'].unique()):
+        countries = clusters_dbscan[clusters_dbscan['Cluster_DBSCAN'] == cluster_id]['Country'].tolist()
+        insights.append(f"- 클러스터 {cluster_id}: {', '.join(countries)}")
 
-    insights.append("\n- 클러스터별 소비 패턴과 특징을 도출하였으며, 각 클러스터는 유사한 월별 스트리밍 패턴을 나타냅니다.")
+    cluster_summary_path = os.path.join(final_output_folder, "insights.txt")
+    with open(cluster_summary_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(insights))
 
-    report_pdf_path = os.path.join(final_output_folder, "music_trends_report.pdf")
-    generate_report_pdf(
-        insights,
-        [
-            change_rate_plot_path,
-            cluster_visualization_path,
-            cluster_avg_visualization_path,
-            top_tracks_plot_path,
-        ],
-        report_pdf_path,
-    )
-
-    print("PDF 보고서 저장 완료.")
+    print("분석 결과 및 인사이트 저장 완료.")
 
 if __name__ == "__main__":
     input_folder = "./spotify_data"
