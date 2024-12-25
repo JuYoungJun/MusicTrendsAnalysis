@@ -1,0 +1,11 @@
+국가별 월별 스트리밍 변화율 분석 결과 저장 경로:
+./final_data/country_monthly_streams_with_rate.csv
+
+국가별 유사 음악 소비 패턴 클러스터링 결과:
+클러스터 0: AU, DE, ES, FR, GB, JP, KR, SE, TH, VN, ZA
+클러스터 1: US
+클러스터 2: BR, IN, MX
+결과 파일 경로: ./final_data/country_clusters.csv
+
+월별 상위 5곡 지속성 분석 결과 저장 경로:
+./final_data/top_tracks_by_month.csv
