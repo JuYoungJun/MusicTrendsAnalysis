@@ -21,7 +21,6 @@ def analyze_and_visualize_insights(output_folder):
         os.makedirs(output_folder)
         print(f"결과 폴더 생성 완료: {output_folder}")
 
-    # 데이터가 저장되었는지 확인하는 디버깅 코드 추가
     print(f"데이터 분석 및 시각화 결과는 {output_folder}에 저장됩니다.")
 
     # 1. 국가별 월별 스트리밍 최대/최소 트렌드 분석
