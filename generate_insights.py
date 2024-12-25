@@ -32,6 +32,10 @@ def generate_insights(output_folder):
         3. 로컬 및 글로벌 아티스트 겹침 분석
         4. 월별 트렌드 비교 시각화
     """
+    # 폴더 생성
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+        print(f"결과 폴더 생성 완료: {output_folder}")
 
     # 1. 국가별 스트리밍 최대/최소 트렌드 분석
     max_stream_path = os.path.join(output_folder, "max_stream_month.csv")
