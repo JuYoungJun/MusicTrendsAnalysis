@@ -5,6 +5,25 @@ import re
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+from matplotlib import font_manager
+
+# 한글 폰트 설정 함수
+def setup_korean_font():
+    """
+    한글 깨짐 방지를 위해 폰트를 다운로드하여 설정합니다.
+    """
+    font_path = './NotoSansCJK-Regular.ttc'  # 폰트 파일 경로
+    if not os.path.exists(font_path):
+        print("한글 폰트 다운로드 중...")
+        os.system(
+            "wget -O NotoSansCJK-Regular.ttc https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/Japanese/NotoSansCJK-Regular.ttc"
+        )
+    font_manager.fontManager.addfont(font_path)
+    plt.rcParams['font.family'] = font_manager.FontProperties(fname=font_path).get_name()
+    plt.rcParams['axes.unicode_minus'] = False
+
+# 한글 폰트 설정
+setup_korean_font()
 
 def extract_country_from_filename(file_name):
     """
@@ -100,7 +119,7 @@ def analyze_music_trends(final_output_folder):
     plt.ylabel('변화율 (%)')
     plt.legend()
     plt.xticks(rotation=45)
-    change_rate_plot_path = os.path.join(final_output_folder, "change_rate_by_country.png")
+    change_rate_plot_path = os.path.join(final_output_folder, "1_change_rate_by_country.png")
     plt.savefig(change_rate_plot_path)
     plt.close()
 
@@ -121,7 +140,7 @@ def analyze_music_trends(final_output_folder):
     plt.xlabel('PCA 구성요소 1')
     plt.ylabel('PCA 구성요소 2')
     plt.legend()
-    cluster_visualization_path = os.path.join(final_output_folder, "country_clustering_visualization.png")
+    cluster_visualization_path = os.path.join(final_output_folder, "2_country_clustering_visualization.png")
     plt.savefig(cluster_visualization_path)
     plt.close()
 
@@ -132,6 +151,19 @@ def analyze_music_trends(final_output_folder):
     top_tracks = top_tracks[top_tracks['rank'] <= 5]
     top_tracks_path = os.path.join(final_output_folder, "top_tracks_by_month.csv")
     top_tracks.to_csv(top_tracks_path, index=False, encoding='utf-8-sig')
+
+    plt.figure(figsize=(12, 8))
+    for month in top_tracks['Month'].unique():
+        subset = top_tracks[top_tracks['Month'] == month]
+        plt.bar(subset['track_name'], subset['streams'], label=str(month))
+    plt.title('월별 상위 곡 스트리밍 수')
+    plt.xlabel('곡 이름')
+    plt.ylabel('스트리밍 수')
+    plt.xticks(rotation=45, fontsize=8)
+    plt.legend()
+    top_tracks_plot_path = os.path.join(final_output_folder, "3_top_tracks_visualization.png")
+    plt.savefig(top_tracks_plot_path)
+    plt.close()
 
     # 인사이트 및 보고서 생성
     insights = []
@@ -145,6 +177,10 @@ def analyze_music_trends(final_output_folder):
     insights.append("\n클러스터링 결과:")
     for cluster, countries in cluster_summary.items():
         insights.append(f"클러스터 {cluster}: {', '.join(countries)}")
+
+    insights.append(f"\n스트리밍 변화율 분석 시각화 저장 경로: {change_rate_plot_path}")
+    insights.append(f"클러스터링 시각화 저장 경로: {cluster_visualization_path}")
+    insights.append(f"월별 상위 곡 시각화 저장 경로: {top_tracks_plot_path}")
 
     report_path = os.path.join(final_output_folder, "report.txt")
     with open(report_path, 'w', encoding='utf-8') as f:
