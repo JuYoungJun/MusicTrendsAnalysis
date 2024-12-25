@@ -130,6 +130,8 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
     merged_data = pd.concat(country_data.values(), ignore_index=True)
 
     if 'Date' not in merged_data.columns:
+        print("병합된 데이터에서 'Date' 컬럼이 누락되었습니다.")
+        print(f"현재 컬럼 목록: {merged_data.columns.tolist()}")
         raise KeyError("'Date' 컬럼이 병합된 데이터에 존재하지 않습니다.")
 
     merged_data['Date'] = pd.to_datetime(merged_data['Date'], errors='coerce')
@@ -180,6 +182,9 @@ def analyze_music_trends(final_output_folder):
     data = pd.read_csv(final_data_path, low_memory=False)
 
     if 'Date' not in data.columns:
+        print("분석할 데이터에 'Date' 컬럼이 없습니다.")
+        print(f"현재 데이터 샘플: {data.head()}")
+        print(f"현재 컬럼 목록: {data.columns.tolist()}")
         raise KeyError("'Date' 컬럼이 분석 데이터에 존재하지 않습니다.")
 
     data['Date'] = pd.to_datetime(data['Date'])
