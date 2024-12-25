@@ -1,4 +1,3 @@
-# 변경된 워크플로우
 name: Analyze Insights Workflow
 
 on:
@@ -49,7 +48,6 @@ jobs:
 
     # 6. 결과물을 아티팩트로 업로드
     - name: Upload results
-      if: success()
       uses: actions/upload-artifact@v3
       with:
         name: analysis-results
@@ -71,3 +69,4 @@ jobs:
           git push origin HEAD:main
         else
           echo "insights 폴더가 비어있어서 커밋하지 않습니다."
+        fi
