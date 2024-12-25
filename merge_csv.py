@@ -154,7 +154,7 @@ def analyze_music_trends(final_output_folder):
 
     # 클러스터별 평균 스트리밍 분석
     cluster_analysis = pivot_table.T.groupby(kmeans.labels_).agg(['mean', 'std', 'max'])
-    cluster_analysis.columns = ['{}_{}'.format(col[1], col[0]) for col in cluster_analysis.columns]  # 다중 인덱스 제거
+    cluster_analysis.columns = [f'{col[0]}_{col[1]}' for col in cluster_analysis.columns]  # 다중 인덱스 제거
     cluster_analysis.to_csv(os.path.join(final_output_folder, "cluster_analysis.csv"), encoding='utf-8-sig')
 
     # 인사이트 도출
@@ -163,7 +163,7 @@ def analyze_music_trends(final_output_folder):
     insights.append("\n## KMeans 기반 클러스터")
     for cluster_id in sorted(clusters_kmeans['Cluster_KMeans'].unique()):
         countries = clusters_kmeans[clusters_kmeans['Cluster_KMeans'] == cluster_id]['Country'].tolist()
-        mean_streams = cluster_analysis.loc[cluster_id, 'mean_streams']
+        mean_streams = cluster_analysis.loc[cluster_id, 'streams_mean']
         pattern_desc = f"클러스터 {cluster_id}는 평균 스트리밍 수가 {mean_streams:.2f}이며, 유사한 스트리밍 트렌드를 보이는 국가들로 구성되었습니다."
         insights.append(f"- 클러스터 {cluster_id}: {', '.join(countries)} ({pattern_desc})")
     
