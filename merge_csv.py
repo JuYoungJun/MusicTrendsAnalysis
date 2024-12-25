@@ -11,17 +11,16 @@ from matplotlib.backends.backend_pdf import PdfPages
 # 한글 폰트 설정 함수
 def setup_korean_font():
     """
-    한글 깨짐 방지를 위해 폰트를 다운로드하여 설정합니다.
+    GitHub Actions 환경에서 설치된 한글 폰트를 설정합니다.
     """
-    font_path = './NotoSansCJK-Regular.ttc'  # 폰트 파일 경로
-    if not os.path.exists(font_path):
-        print("한글 폰트 다운로드 중...")
-        os.system(
-            "wget -O NotoSansCJK-Regular.ttc https://github.com/googlefonts/noto-cjk/raw/main/Sans/OTF/Japanese/NotoSansCJK-Regular.ttc"
-        )
-    font_manager.fontManager.addfont(font_path)
-    plt.rcParams['font.family'] = font_manager.FontProperties(fname=font_path).get_name()
-    plt.rcParams['axes.unicode_minus'] = False
+    font_path = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"  # GitHub Actions에서 설치된 경로
+    if os.path.exists(font_path):
+        font_manager.fontManager.addfont(font_path)
+        plt.rcParams['font.family'] = font_manager.FontProperties(fname=font_path).get_name()
+        plt.rcParams['axes.unicode_minus'] = False
+        print(f"한글 폰트 설정 완료: {font_path}")
+    else:
+        print("폰트를 찾을 수 없습니다. Actions 설정을 확인하세요.")
 
 # 한글 폰트 설정
 setup_korean_font()
