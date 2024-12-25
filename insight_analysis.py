@@ -2,13 +2,14 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from matplotlib_venn import venn2
-from matplotlib import font_manager
-
 
 def setup_korean_font():
+    """
+    한글 폰트를 설정하는 함수입니다.
+    """
     font_path = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
     if os.path.exists(font_path):
+        from matplotlib import font_manager
         font_manager.fontManager.addfont(font_path)
         plt.rcParams['font.family'] = font_manager.FontProperties(fname=font_path).get_name()
         plt.rcParams['axes.unicode_minus'] = False
@@ -16,113 +17,113 @@ def setup_korean_font():
     else:
         print("폰트를 찾을 수 없습니다. Actions 설정을 확인하세요.")
 
-
 setup_korean_font()
 
-
-def plot_country_stream_trends(max_stream_data, min_stream_data, output_folder):
-    max_stream_data = max_stream_data.nlargest(10, 'streams')
-    min_stream_data = min_stream_data[min_stream_data['Country'].isin(max_stream_data['Country'])]
-
-    countries = max_stream_data['Country'].tolist()
-    max_stream_data = max_stream_data.set_index('Country').reindex(countries)
-    min_stream_data = min_stream_data.set_index('Country').reindex(countries)
-
-    plt.figure(figsize=(12, 8))
-    bar_width = 0.35
-    indices = range(len(countries))
-    plt.bar(indices, max_stream_data['streams'] / 1e6, width=bar_width, label='최대 스트리밍 (백만 단위)', color='blue', alpha=0.6)
-    plt.bar([i + bar_width for i in indices], min_stream_data['streams'] / 1e6, width=bar_width, label='최소 스트리밍 (백만 단위)', color='red', alpha=0.6)
-
-    plt.xticks([i + bar_width / 2 for i in indices], countries, rotation=45, fontsize=12)
-    plt.xlabel("국가", fontsize=14)
-    plt.ylabel("스트리밍 수 (백만)", fontsize=14)
-    plt.title("국가별 최대 및 최소 스트리밍 비교 (상위 10개 국가)", fontsize=16)
-    plt.legend(fontsize=12)
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
-    plt.tight_layout()
-
-    output_path = os.path.join(output_folder, "country_stream_trends_improved.png")
-    plt.savefig(output_path)
-    print(f"국가별 스트리밍 비교 그래프 저장 완료: {output_path}")
-    plt.close()
-
-
-def plot_global_trends_heatmap(data, output_folder):
-    top_items = data.groupby('Name')['streams'].sum().nlargest(10).index
-    filtered_df = data[data['Name'].isin(top_items)]
-    pivot_df = filtered_df.pivot(index='Name', columns='Month', values='streams')
-
-    plt.figure(figsize=(12, 8))
-    sns.heatmap(pivot_df, annot=True, fmt=".0f", cmap="Blues", cbar_kws={'label': '스트리밍 수 (백만)'})
-    plt.title("월별 인기 곡 및 아티스트 트렌드 (히트맵)", fontsize=16)
-    plt.xlabel("월", fontsize=12)
-    plt.ylabel("곡/아티스트", fontsize=12)
-    plt.tight_layout()
-    output_path = os.path.join(output_folder, "global_trends_heatmap.png")
-    plt.savefig(output_path)
-    print(f"히트맵 저장 완료: {output_path}")
-    plt.close()
-
-
-def plot_artist_overlap(data_local, data_global, output_folder):
-    local_artists = set(data_local['artist_names'])
-    global_artists = set(data_global['artist_names'])
-
-    common_artists = local_artists.intersection(global_artists)
-    only_local = local_artists - global_artists
-    only_global = global_artists - local_artists
-
-    plt.figure(figsize=(12, 6))
-    categories = ['로컬 전용', '글로벌 전용', '공통 아티스트']
-    counts = [len(only_local), len(only_global), len(common_artists)]
-    plt.bar(categories, counts, color=['blue', 'red', 'green'])
-    plt.title("로컬 및 글로벌 인기 아티스트 비교", fontsize=16)
-    plt.ylabel("아티스트 수", fontsize=12)
-    plt.xlabel("카테고리", fontsize=12)
-    plt.tight_layout()
-    output_path = os.path.join(output_folder, "artist_overlap_comparison.png")
-    plt.savefig(output_path)
-    print(f"아티스트 비교 막대 그래프 저장 완료: {output_path}")
-    plt.close()
-
-    with open(os.path.join(output_folder, "common_artists.txt"), "w", encoding="utf-8") as f:
-        f.write("\n".join(sorted(common_artists)))
-        print(f"공통 아티스트 목록 저장 완료: common_artists.txt")
-
-
-def analyze_and_visualize_insights(output_folder):
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-        print(f"결과 폴더 생성 완료: {output_folder}")
-
-    max_stream_path = os.path.join("./final_data", "max_stream_month.csv")
-    min_stream_path = os.path.join("./final_data", "min_stream_month.csv")
-    global_artists_path = os.path.join("./final_data", "global_top_artists.csv")
-    local_artists_path = os.path.join("./final_data", "top_artists_by_country.csv")
-    trends_path = os.path.join("./final_data", "monthly_common_tracks_and_artists.csv")
-
+def visualize_country_stream_trends(max_stream_path, min_stream_path, output_path):
+    """
+    국가별 최대 및 최소 스트리밍 데이터를 시각화합니다.
+    """
     if os.path.exists(max_stream_path) and os.path.exists(min_stream_path):
-        max_stream_data = pd.read_csv(max_stream_path)
-        min_stream_data = pd.read_csv(min_stream_path)
-        plot_country_stream_trends(max_stream_data, min_stream_data, output_folder)
-    else:
-        print("max_stream_month.csv 또는 min_stream_month.csv 파일이 존재하지 않습니다.")
+        max_df = pd.read_csv(max_stream_path)
+        min_df = pd.read_csv(min_stream_path)
 
-    if os.path.exists(global_artists_path) and os.path.exists(local_artists_path):
-        global_artists = pd.read_csv(global_artists_path)
-        local_artists = pd.read_csv(local_artists_path)
-        plot_artist_overlap(local_artists, global_artists, output_folder)
+        plt.figure(figsize=(14, 8))
+        plt.bar(max_df['Country'], max_df['streams'] / 1e6, label='최대 스트리밍 (백만)', color='blue', alpha=0.6)
+        plt.bar(min_df['Country'], min_df['streams'] / 1e6, label='최소 스트리밍 (백만)', color='red', alpha=0.6)
+        plt.title("국가별 최대 및 최소 스트리밍 트렌드", fontsize=16)
+        plt.xlabel("국가", fontsize=14)
+        plt.ylabel("스트리밍 수 (백만)", fontsize=14)
+        plt.xticks(rotation=45, fontsize=12)
+        plt.legend(fontsize=12)
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        plt.savefig(output_path)
+        plt.close()
+        print(f"국가별 스트리밍 트렌드 시각화 저장 완료: {output_path}")
     else:
-        print("top_artists_by_country.csv 또는 global_top_artists.csv 파일이 존재하지 않습니다.")
+        print(f"{max_stream_path} 또는 {min_stream_path} 파일이 존재하지 않습니다.")
 
-    if os.path.exists(trends_path):
-        trends_data = pd.read_csv(trends_path)
-        plot_global_trends_heatmap(trends_data, output_folder)
-    else:
-        print("monthly_common_tracks_and_artists.csv 파일이 존재하지 않습니다.")
+def visualize_global_trends_heatmap(data, output_path):
+    """
+    월별 인기 곡/아티스트의 스트리밍 수를 히트맵으로 시각화합니다.
+    """
+    pivot_data = data.pivot(index='Name', columns='Month', values='streams').fillna(0)
+    top_items = pivot_data.sum(axis=1).nlargest(10).index
+    filtered_data = pivot_data.loc[top_items]
 
+    plt.figure(figsize=(12, 8))
+    sns.heatmap(
+        filtered_data,
+        annot=True,
+        fmt=".0f",
+        cmap="YlGnBu",
+        cbar_kws={"label": "스트리밍 수 (백만)"},
+        linewidths=0.5
+    )
+    plt.title("월별 인기 곡/아티스트 스트리밍 히트맵", fontsize=16)
+    plt.xlabel("월", fontsize=14)
+    plt.ylabel("곡/아티스트", fontsize=14)
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
+    print(f"히트맵 저장 완료: {output_path}")
+
+def visualize_artist_overlap_comparison(local_artists, global_artists, output_path):
+    """
+    로컬 및 글로벌 아티스트의 비교를 막대 그래프로 시각화합니다.
+    """
+    overlap_artists = local_artists & global_artists
+    local_only = local_artists - global_artists
+    global_only = global_artists - local_artists
+
+    categories = ['겹치는 아티스트', '로컬 전용', '글로벌 전용']
+    counts = [len(overlap_artists), len(local_only), len(global_only)]
+
+    plt.figure(figsize=(10, 6))
+    plt.bar(categories, counts, color=['green', 'blue', 'orange'])
+    plt.title("로컬 및 글로벌 아티스트 비교", fontsize=16)
+    plt.ylabel("아티스트 수", fontsize=14)
+
+    for i, count in enumerate(counts):
+        plt.text(i, count + 0.5, str(count), ha='center', fontsize=12)
+
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
+    print(f"아티스트 비교 시각화 저장 완료: {output_path}")
 
 if __name__ == "__main__":
+    # 파일 경로 정의
+    final_data_folder = "./final_data"
     insights_output_folder = "./insights"
-    analyze_and_visualize_insights(insights_output_folder)
+
+    if not os.path.exists(insights_output_folder):
+        os.makedirs(insights_output_folder)
+
+    # 시각화 실행
+    visualize_country_stream_trends(
+        os.path.join(final_data_folder, "max_stream_month.csv"),
+        os.path.join(final_data_folder, "min_stream_month.csv"),
+        os.path.join(insights_output_folder, "country_stream_trends_improved.png")
+    )
+
+    combined_data_path = os.path.join(final_data_folder, "monthly_common_tracks_and_artists.csv")
+    if os.path.exists(combined_data_path):
+        combined_data = pd.read_csv(combined_data_path)
+        visualize_global_trends_heatmap(
+            combined_data,
+            os.path.join(insights_output_folder, "global_trends_heatmap_improved.png")
+        )
+
+    top_artists_path = os.path.join(final_data_folder, "top_artists_by_country.csv")
+    global_artists_path = os.path.join(final_data_folder, "global_top_artists.csv")
+    if os.path.exists(top_artists_path) and os.path.exists(global_artists_path):
+        local_df = pd.read_csv(top_artists_path)
+        global_df = pd.read_csv(global_artists_path)
+        local_artists_set = set(local_df['artist_names'])
+        global_artists_set = set(global_df['artist_names'])
+        visualize_artist_overlap_comparison(
+            local_artists_set,
+            global_artists_set,
+            os.path.join(insights_output_folder, "artist_overlap_comparison_improved.png")
+        )
