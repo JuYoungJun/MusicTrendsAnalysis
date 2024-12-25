@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib_venn import venn2
 from matplotlib import font_manager
 
 # 한글 폰트 설정 함수
@@ -21,25 +20,21 @@ def setup_korean_font():
 # 한글 폰트 설정
 setup_korean_font()
 
-def generate_insights(output_folder):
+# 데이터 시각화 및 인사이트 도출 함수
+def analyze_and_visualize_insights(output_folder):
     """
-    데이터를 분석하고 유의미한 인사이트를 도출합니다.
+    주어진 데이터를 기반으로 인사이트를 도출하고 시각화합니다.
+
     Args:
-        output_folder (str): 분석 결과 데이터가 저장될 폴더 경로
+        output_folder (str): 분석 결과 데이터가 저장된 폴더 경로
+
+    결과물:
+        1. 국가별 월별 스트리밍 최대/최소 트렌드 분석
+        2. 로컬 및 글로벌 인기 아티스트 비교
+        3. 월별 인기 곡 및 아티스트 트렌드 분석
     """
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-        print(f"결과 폴더 생성 완료: {output_folder}")
 
-    # 결과 저장 경로 디버깅
-    output_files = [
-        os.path.join(output_folder, "country_stream_trends.png"),
-        os.path.join(output_folder, "artist_comparison.png"),
-        os.path.join(output_folder, "monthly_trends.png"),
-        os.path.join(output_folder, "top_tracks_artists.png"),
-    ]
-
-    # 1. 국가별 스트리밍 최대/최소 트렌드 분석
+    # 1. 국가별 월별 스트리밍 최대/최소 트렌드 분석
     max_stream_path = os.path.join(output_folder, "max_stream_month.csv")
     min_stream_path = os.path.join(output_folder, "min_stream_month.csv")
 
@@ -48,84 +43,53 @@ def generate_insights(output_folder):
         min_df = pd.read_csv(min_stream_path)
 
         plt.figure(figsize=(12, 6))
-        plt.bar(max_df['Country'], max_df['streams'], label='최대 스트리밍', alpha=0.7, color='blue')
-        plt.bar(min_df['Country'], min_df['streams'], label='최소 스트리밍', alpha=0.7, color='orange')
+        plt.bar(max_df['Country'], max_df['streams'], label='최대 스트리밍', color='blue', alpha=0.6)
+        plt.bar(min_df['Country'], min_df['streams'], label='최소 스트리밍', color='red', alpha=0.6)
         plt.title("국가별 최대 및 최소 스트리밍 트렌드")
         plt.xlabel("국가")
         plt.ylabel("스트리밍 수")
         plt.legend()
-        plt.savefig(output_files[0])
+        plt.savefig(os.path.join(output_folder, "country_stream_trends.png"))
         plt.close()
 
-    # 2. 인기 아티스트 분석 (로컬 vs 글로벌)
-    local_path = os.path.join(output_folder, "top_artists_by_country.csv")
-    global_path = os.path.join(output_folder, "global_top_artists.csv")
+    # 2. 로컬 및 글로벌 인기 아티스트 비교
+    top_artists_path = os.path.join(output_folder, "top_artists_by_country.csv")
+    global_artists_path = os.path.join(output_folder, "global_top_artists.csv")
 
-    if os.path.exists(local_path) and os.path.exists(global_path):
-        local_df = pd.read_csv(local_path)
-        global_df = pd.read_csv(global_path)
+    if os.path.exists(top_artists_path) and os.path.exists(global_artists_path):
+        local_df = pd.read_csv(top_artists_path)
+        global_df = pd.read_csv(global_artists_path)
 
         local_artists = set(local_df['artist_names'])
         global_artists = set(global_df['artist_names'])
 
+        # Venn Diagram
+        from matplotlib_venn import venn2
         plt.figure(figsize=(8, 8))
-        venn = venn2([local_artists, global_artists], ('로컬 인기 아티스트', '글로벌 인기 아티스트'))
-        plt.title("로컬과 글로벌 인기 아티스트 비교")
-        plt.savefig(output_files[1])
+        venn = venn2([local_artists, global_artists], ('로컬 아티스트', '글로벌 아티스트'))
+        plt.title("로컬 및 글로벌 인기 아티스트 비교")
+        plt.savefig(os.path.join(output_folder, "artist_overlap.png"))
         plt.close()
 
-    # 3. 월별 인기 곡/아티스트 트렌드 분석
-    combined_path = os.path.join(output_folder, "monthly_common_tracks_and_artists.csv")
+    # 3. 월별 인기 곡 및 아티스트 트렌드 분석
+    combined_data_path = os.path.join(output_folder, "monthly_common_tracks_and_artists.csv")
 
-    if os.path.exists(combined_path):
-        combined_df = pd.read_csv(combined_path)
-
-        top_tracks = combined_df.groupby('Name')['streams'].sum().nlargest(5).index
-        top_data = combined_df[combined_df['Name'].isin(top_tracks)]
+    if os.path.exists(combined_data_path):
+        combined_df = pd.read_csv(combined_data_path)
 
         plt.figure(figsize=(12, 8))
-        for name, group in top_data.groupby('Name'):
+        for name, group in combined_df.groupby('Name'):
             plt.plot(group['Month'], group['streams'], label=name)
-        plt.title("월별 인기 곡/아티스트 트렌드")
+
+        plt.title("월별 인기 곡 및 아티스트 트렌드")
         plt.xlabel("월")
         plt.ylabel("스트리밍 수")
         plt.legend()
-        plt.savefig(output_files[2])
+        plt.savefig(os.path.join(output_folder, "global_trends.png"))
         plt.close()
 
-    # 4. 전세계 스트리밍 상위 곡/아티스트 비교
-    track_path = os.path.join(output_folder, "monthly_common_tracks.csv")
-    artist_path = os.path.join(output_folder, "monthly_common_artists.csv")
-
-    if os.path.exists(track_path) and os.path.exists(artist_path):
-        track_df = pd.read_csv(track_path)
-        artist_df = pd.read_csv(artist_path)
-
-        track_top = track_df.groupby('track_name')['streams'].sum().nlargest(5).reset_index()
-        artist_top = artist_df.groupby('artist_names')['streams'].sum().nlargest(5).reset_index()
-
-        fig, axes = plt.subplots(1, 2, figsize=(16, 8))
-        axes[0].barh(track_top['track_name'], track_top['streams'], color='purple')
-        axes[0].set_title("상위 5곡 스트리밍 수")
-        axes[0].invert_yaxis()
-
-        axes[1].barh(artist_top['artist_names'], artist_top['streams'], color='green')
-        axes[1].set_title("상위 5 아티스트 스트리밍 수")
-        axes[1].invert_yaxis()
-
-        plt.tight_layout()
-        plt.savefig(output_files[3])
-        plt.close()
-
-    # 생성된 파일 디버깅
-    for file in output_files:
-        if os.path.exists(file):
-            print(f"파일 생성 확인: {file}")
-        else:
-            print(f"파일 생성 실패: {file}")
-
-    print("모든 분석 및 시각화 완료.")
+    print("분석 및 시각화 완료. 결과물은 해당 폴더에 저장되었습니다.")
 
 if __name__ == "__main__":
-    output_folder = "./insights"
-    generate_insights(output_folder)
+    output_folder = "./final_data"
+    analyze_and_visualize_insights(output_folder)
