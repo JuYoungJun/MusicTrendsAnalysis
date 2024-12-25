@@ -40,15 +40,30 @@ jobs:
         python insight_analysis.py
         ls -R insights/ || echo "insights 폴더가 비어있습니다."
 
-    # 6. 결과물을 아티팩트로 업로드
+    # 6. insights 폴더 확인
+    - name: Check insights folder
+      run: |
+        if [ -d "insights" ]; then
+          echo "insights 폴더가 존재합니다."
+          if [ "$(ls -A insights)" ]; then
+            echo "insights 폴더에 파일이 존재합니다."
+          else
+            echo "insights 폴더가 비어있습니다. 워크플로우를 종료합니다."
+            exit 1
+          fi
+        else
+          echo "insights 폴더가 생성되지 않았습니다. 워크플로우를 종료합니다."
+          exit 1
+
+    # 7. 결과물을 아티팩트로 업로드
     - name: Upload results
       uses: actions/upload-artifact@v3
       with:
         name: analysis-results
         path: insights/**
-        if-no-files-found: warn
+        if-no-files-found: error
 
-    # 7. 변경된 파일 커밋 및 푸시
+    # 8. 변경된 파일 커밋 및 푸시
     - name: Commit and Push Changes
       env:
         PAT: ${{ secrets.PAT }}  # Personal Access Token
