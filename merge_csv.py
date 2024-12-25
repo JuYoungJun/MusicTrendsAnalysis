@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import re
 
 # 파일 이름에서 국가 코드 추출
 def extract_country_from_filename(file_name):
@@ -22,9 +23,9 @@ def extract_date_from_filename(file_name):
     - Input: 파일 이름 (문자열)
     - Output: 날짜 (문자열)
     """
-    parts = file_name.split('-')
-    if len(parts) > 3:
-        date_part = parts[-1].split('.')[0]
+    match = re.search(r"\d{4}-\d{2}-\d{2}", file_name)
+    if match:
+        date_part = match.group(0)
         try:
             # 날짜 검증
             pd.to_datetime(date_part, format="%Y-%m-%d")
@@ -57,8 +58,8 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
         file_name = os.path.basename(file_path)
         country = extract_country_from_filename(file_name)
         date = extract_date_from_filename(file_name)
-        
-        if date == "INVALID_DATE":
+
+        if date in ["INVALID_DATE", "UNKNOWN"]:
             print(f"잘못된 날짜 형식 발견: {file_name}, 파일을 건너뜁니다.")
             continue
 
@@ -219,7 +220,7 @@ def analyze_monthly_top_artists_and_tracks(data, output_folder):
     ).reset_index()
 
     top_monthly_tracks = monthly_top_tracks.sort_values(['country', 'month', 'total_streams'], ascending=[True, True, False])
-    top_monthly_tracks = top_monthly_tracks.groupby(['country', 'month']).head(5)  # 상위 5곡 추출
+    top_monthly_tracks = monthly_top_tracks.groupby(['country', 'month']).head(5)  # 상위 5곡 추출
 
     top_monthly_tracks.to_csv(os.path.join(output_folder, "monthly_top_tracks.csv"), index=False, encoding='utf-8-sig')
     print("월별 상위 스트리밍 곡 및 가수 분석 완료.")
