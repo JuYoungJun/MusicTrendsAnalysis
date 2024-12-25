@@ -44,6 +44,17 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
       * intermediate_folder: 중간 병합 데이터를 저장할 폴더 경로
       * final_output_folder: 최종 병합 데이터를 저장할 폴더 경로
     - Output: 병합된 CSV 파일 생성 및 저장
+
+    컬럼 설명:
+      * rank: 순위
+      * uri: 고유 식별자
+      * artist_names: 가수 이름
+      * track_name: 트랙 이름
+      * source: 데이터 출처
+      * peak_rank: 최고 순위
+      * previous_rank: 이전 순위
+      * weeks_on_chart: 차트 유지 주 수
+      * streams: 스트리밍 수
     """
     csv_files = []
     for root, _, files in os.walk(input_folder):
@@ -92,261 +103,147 @@ def merge_by_country(input_folder, intermediate_folder, final_output_folder):
 
     print("병합 및 저장이 완료되었습니다.")
 
-    # 추가 분석 알고리즘 실행
-    analyze_streaming_by_month(merged_data, final_output_folder)
-    analyze_global_low_streaming_month(merged_data, final_output_folder)
-    analyze_unique_and_common_artists(merged_data, final_output_folder)
-    analyze_streaming_by_month_year(merged_data, final_output_folder)
-    analyze_monthly_top_artists_and_tracks(merged_data, final_output_folder)
-    analyze_common_artists_and_tracks_by_month(merged_data, final_output_folder)
-    analyze_growth_rate_of_artists_and_tracks(merged_data, final_output_folder)
-
-    # 인사이트 도출
-    generate_insights(final_output_folder)
-
-# 국가별 가장 스트리밍이 많은 월 분석
-def analyze_streaming_by_month(data, output_folder):
+# 데이터 분석 알고리즘 추가
+def analyze_music_trends(final_output_folder):
     """
-    국가별로 가장 스트리밍이 많은 월을 분석합니다.
-    - 컬럼 구성:
-      * Country: 국가 코드
-      * Month: 월 (연-월 형식)
-      * Total Streams: 스트리밍 총합
-    - 활용 방안:
-      * 특정 국가의 월별 스트리밍 트렌드를 분석하여 마케팅 및 광고 집행에 적합한 성수기 파악
-      * 국가별 음악 소비 패턴 분석을 통해 지역 특화 콘텐츠 제작 가능
+    국가별 및 전세계 음악 스트리밍 데이터를 분석합니다.
+    - Input: 최종 병합 데이터가 저장된 폴더 경로
+    - Output: 분석 결과 출력 및 저장
+
+    분석 항목:
+      1. 국가별 가장 음악을 많이 스트리밍한 월:
+         - 국가별 월간 스트리밍 합계를 계산하여 가장 많이 스트리밍한 월을 확인.
+      2. 전세계적으로 음악 스트리밍이 가장 적은 달:
+         - 모든 국가 데이터를 통합하여 월간 합계 중 가장 낮은 값을 가진 달을 찾음.
+      3. 특정 국가에서만 인기 있는 가수 & 모든 국가에서 공통적으로 인기 있는 가수:
+         - 가수가 등장한 국가 수를 계산하여 특정 국가에서만 인기 있는 가수와 모든 국가에서 인기 있는 가수를 비교.
+      4. 주요 인사이트 도출:
+         - 분석 결과를 기반으로 국가별 및 글로벌 음악 소비 패턴에 대한 인사이트를 텍스트 파일로 저장.
     """
-    data['Month'] = pd.to_datetime(data['Date']).dt.to_period('M')
-    monthly_streams = data.groupby(['Country', 'Month']).agg(
-        Total_Streams=('streams', 'sum')
-    ).reset_index()
+    # 최종 병합 데이터 로드
+    final_data_path = os.path.join(final_output_folder, "final_merged_data.csv")
+    data = pd.read_csv(final_data_path)
 
-    max_streams_by_country = monthly_streams.loc[monthly_streams.groupby('Country')['Total_Streams'].idxmax()]
-    max_streams_by_country.rename(columns={"Total_Streams": "Max_Streams"}, inplace=True)
-    max_streams_by_country.to_csv(os.path.join(output_folder, "max_streams_by_month.csv"), index=False, encoding='utf-8-sig')
-    print("국가별 가장 스트리밍이 많은 월 분석 완료.")
+    # 날짜를 datetime 형식으로 변환
+    data['Date'] = pd.to_datetime(data['Date'], format="%Y-%m-%d")
+    data['Month'] = data['Date'].dt.to_period('M')  # 월 단위로 그룹화하기 위해 Month 열 생성.
 
-# 전 세계적으로 스트리밍이 적은 달 분석
-def analyze_global_low_streaming_month(data, output_folder):
-    """
-    전 세계적으로 스트리밍이 가장 적은 달을 분석합니다.
-    - 컬럼 구성:
-      * Month: 월 (연-월 형식)
-      * Total Streams: 전 세계 스트리밍 총합
-    - 활용 방안:
-      * 글로벌 음악 소비가 저조한 시기를 파악하여 원인을 분석하고, 특정 이벤트나 프로모션 전략 수립 가능
-      * 음악 시장의 전반적인 침체 시기를 예측하여 대응 방안을 마련
-    """
-    data['Month'] = pd.to_datetime(data['Date']).dt.to_period('M')
-    global_monthly_streams = data.groupby('Month').agg(
-        Total_Streams=('streams', 'sum')
-    ).reset_index()
+    # 1. 국가별 가장 음악을 많이 스트리밍한 월
+    country_monthly_streams = data.groupby(['Country', 'Month'])['streams'].sum().reset_index()
+    # 기준:
+    # - 데이터를 국가 및 월 단위로 그룹화하여 총 스트리밍 수를 계산.
+    # 컬럼 구성:
+    # - Country: 국가 코드.
+    # - Month: 연-월 (예: 2023-06).
+    # - streams: 해당 월에 해당 국가에서 스트리밍된 총 수.
+    # 활용법:
+    # 국가별 월간 음악 소비 데이터를 분석하여 특정 월의 소비 패턴을 파악.
 
-    min_stream_month = global_monthly_streams.loc[global_monthly_streams['Total_Streams'].idxmin()]
-    min_stream_month.to_csv(os.path.join(output_folder, "global_low_stream_month.csv"), index=False, encoding='utf-8-sig')
-    print("전 세계적으로 스트리밍이 적은 달 분석 완료.")
+    max_stream_month_per_country = country_monthly_streams.loc[
+        country_monthly_streams.groupby('Country')['streams'].idxmax()
+    ]
+    # 기준:
+    # - 각 국가별로 스트리밍 수가 가장 많은 월을 추출.
+    # 컬럼 구성:
+    # - Country: 국가 코드.
+    # - Month: 스트리밍이 가장 많았던 연-월.
+    # - streams: 해당 월의 최대 스트리밍 수.
+    # 활용법:
+    # 특정 국가의 음악 소비가 최고조에 달했던 시점을 분석.
 
-# 국가별 고유 인기 아티스트와 글로벌 인기 아티스트 비교
-def analyze_unique_and_common_artists(data, output_folder):
-    """
-    국가별 고유 인기 아티스트와 글로벌 인기 아티스트를 비교합니다.
-    - 컬럼 구성:
-      * Country: 국가 코드
-      * Unique Artists: 해당 국가의 고유 인기 아티스트 목록
-      * Global Artists: 모든 국가에서 공통적으로 인기 있는 아티스트 목록
-    - 활용 방안:
-      * 특정 국가에서만 인기를 끄는 아티스트를 발굴하여 지역별 맞춤형 마케팅 전략 수립 가능
-      * 전 세계적으로 공통적인 음악 트렌드와 선호도를 분석하여 글로벌 캠페인에 활용
-    """
-    country_artists = data.groupby('Country')['artist_names'].apply(lambda x: set(x)).reset_index()
-    country_artists.rename(columns={'artist_names': 'Artists'}, inplace=True)
+    max_stream_month_per_country_path = os.path.join(final_output_folder, "max_stream_month_per_country.csv")
+    max_stream_month_per_country.to_csv(max_stream_month_per_country_path, index=False, encoding='utf-8-sig')
 
-    global_artists = set.intersection(*country_artists['Artists'])
-    unique_artists_by_country = country_artists.copy()
-    unique_artists_by_country['Unique_Artists'] = unique_artists_by_country['Artists'].apply(lambda x: x - global_artists)
+    # 2. 전세계적으로 음악 스트리밍이 가장 적은 달
+    global_monthly_streams = data.groupby('Month')['streams'].sum().reset_index()
+    # 기준:
+    # - 데이터를 월 단위로 그룹화하여 전세계 스트리밍 합계를 계산.
+    # 컬럼 구성:
+    # - Month: 연-월 (예: 2023-06).
+    # - streams: 해당 월에 전세계에서 스트리밍된 총 수.
+    # 활용법:
+    # 특정 시점에서 전세계 음악 소비 감소의 원인을 분석.
 
-    # 저장
-    pd.DataFrame({'Global_Artists': list(global_artists)}).to_csv(os.path.join(output_folder, "global_common_artists.csv"), index=False, encoding='utf-8-sig')
-    unique_artists_by_country.drop(columns=['Artists'], inplace=True)
-    unique_artists_by_country.to_csv(os.path.join(output_folder, "unique_artists_by_country.csv"), index=False, encoding='utf-8-sig')
-    print("국가별 고유 인기 아티스트와 글로벌 인기 아티스트 비교 완료.")
+    min_stream_month = global_monthly_streams.loc[global_monthly_streams['streams'].idxmin()]
+    # 기준:
+    # - 전세계적으로 스트리밍 수가 가장 낮은 달을 식별.
+    # 컬럼 구성:
+    # - Month: 스트리밍이 가장 적었던 연-월.
+    # - streams: 해당 월의 최소 스트리밍 수.
+    # 활용법:
+    # 특정 월의 소비 패턴을 분석하여 전세계적 트렌드를 이해.
 
-# 국가별/년도별/월별 스트리밍 수 분석
-def analyze_streaming_by_month_year(data, output_folder):
-    """
-    국가별, 년도별, 월별 스트리밍 수 분석
-    - 컬럼 구성:
-      * Country: 국가 코드
-      * Year: 연도
-      * Month: 월
-      * Total Streams: 스트리밍 총합
-    - 활용 방안:
-      * 특정 시기의 스트리밍 데이터를 분석하여 음악 시장의 성수기와 비수기를 명확히 파악 가능
-      * 연도별 스트리밍 성장을 추적하여 음악 소비의 변화 추세를 이해
-    """
-    data['Year'] = pd.to_datetime(data['Date']).dt.year
-    data['Month'] = pd.to_datetime(data['Date']).dt.month
+    global_monthly_streams_path = os.path.join(final_output_folder, "global_monthly_streams.csv")
+    global_monthly_streams.to_csv(global_monthly_streams_path, index=False, encoding='utf-8-sig')
 
-    streams_by_month_year = data.groupby(['Country', 'Year', 'Month']).agg(
-        Total_Streams=('streams', 'sum')
-    ).reset_index()
+    # 3. 특정 국가에서만 많이 등장하는 가수 & 모든 국가에서 공통적으로 인기 있는 가수
+    artist_country_counts = data.groupby(['artist_names', 'Country']).size().reset_index(name='count')
+    # 기준:
+    # - 데이터를 가수와 국가 단위로 그룹화하여 각 국가에서 가수의 등장 횟수를 계산.
+    # 컬럼 구성:
+    # - artist_names: 가수 이름.
+    # - Country: 가수가 등장한 국가 코드.
+    # - count: 해당 국가에서 가수가 등장한 횟수.
+    # 활용법:
+    # 특정 가수의 지역적 인기와 글로벌 인기를 비교.
 
-    streams_by_month_year.to_csv(os.path.join(output_folder, "streams_by_month_year.csv"), index=False, encoding='utf-8-sig')
-    print("국가별/년도별/월별 스트리밍 수 분석 완료.")
+    unique_country_artists = artist_country_counts.groupby('artist_names')['Country'].nunique()
+    # 기준:
+    # - 각 가수가 등장한 고유 국가의 수를 계산.
+    # 컬럼 구성:
+    # - artist_names: 가수 이름.
+    # - Country: 고유 국가의 수.
+    # 활용법:
+    # 특정 가수가 전세계적으로 얼마나 많은 국가에서 인기가 있는지를 분석.
 
-# 월별 상위 스트리밍 곡 및 가수 분석
-def analyze_monthly_top_artists_and_tracks(data, output_folder):
-    """
-    월별 상위 스트리밍 곡 및 가수를 분석합니다.
-    - 컬럼 구성:
-      * Country: 국가 코드
-      * Month: 월
-      * Track Name: 곡 이름
-      * Artist Names: 아티스트 이름
-      * Total Streams: 곡별 스트리밍 수
-    - 활용 방안:
-      * 특정 월에 인기를 끈 곡과 아티스트를 파악하여 음악 산업 내 트렌드 분석에 활용
-      * 월별 상위 트랙 데이터를 통해 이벤트 또는 캠페인에 적합한 음악 추천 가능
-    """
-    data['Month'] = pd.to_datetime(data['Date']).dt.to_period('M')
+    unique_to_one_country = unique_country_artists[unique_country_artists == 1].reset_index()
+    # 기준:
+    # - 단일 국가에서만 등장한 가수를 식별.
+    # 컬럼 구성:
+    # - artist_names: 가수 이름.
+    # 활용법:
+    # 특정 국가에 특화된 음악 소비 트렌드를 분석.
 
-    monthly_top_tracks = data.groupby(['Country', 'Month', 'track_name', 'artist_names']).agg(
-        Total_Streams=('streams', 'sum')
-    ).reset_index()
+    unique_to_one_country_path = os.path.join(final_output_folder, "unique_to_one_country.csv")
+    unique_to_one_country.to_csv(unique_to_one_country_path, index=False, encoding='utf-8-sig')
 
-    top_monthly_tracks = monthly_top_tracks.sort_values(['Country', 'Month', 'Total_Streams'], ascending=[True, True, False])
-    top_monthly_tracks = monthly_top_tracks.groupby(['Country', 'Month']).head(5)  # 상위 5곡 추출
+    all_countries = data['Country'].nunique()
+    global_artists = unique_country_artists[unique_country_artists == all_countries].reset_index()
+    # 기준:
+    # - 모든 국가에서 공통적으로 등장한 가수를 식별.
+    # 컬럼 구성:
+    # - artist_names: 가수 이름.
+    # 활용법:
+    # 전세계적으로 공통적으로 인기 있는 가수를 분석하여 글로벌 트렌드를 이해.
 
-    top_monthly_tracks.to_csv(os.path.join(output_folder, "monthly_top_tracks.csv"), index=False, encoding='utf-8-sig')
-    print("월별 상위 스트리밍 곡 및 가수 분석 완료.")
+    global_artists_path = os.path.join(final_output_folder, "global_artists.csv")
+    global_artists.to_csv(global_artists_path, index=False, encoding='utf-8-sig')
 
-# 월별 국가 간 공통 아티스트 및 곡 분석
-def analyze_common_artists_and_tracks_by_month(data, output_folder):
-    """
-    월별 국가 간 공통 아티스트 및 곡을 분석합니다.
-    - 컬럼 구성:
-      * Month: 월 (연-월 형식)
-      * Common Artists: 월별 국가 간 공통 아티스트 목록
-      * Common Tracks: 월별 국가 간 공통 곡 목록
-    - 활용 방안:
-      * 모든 국가에서 공통적으로 인기를 끈 곡과 아티스트를 파악하여 글로벌 음악 트렌드 분석
-      * 국가 간 공통적인 소비 패턴을 이해하여 전 세계적인 캠페인 전략 수립
-    """
-    data['Month'] = pd.to_datetime(data['Date']).dt.to_period('M')
-
-    monthly_artists = data.groupby(['Month', 'Country'])['artist_names'].apply(lambda x: set(x)).reset_index()
-    monthly_tracks = data.groupby(['Month', 'Country'])['track_name'].apply(lambda x: set(x)).reset_index()
-
-    common_artists = monthly_artists.groupby('Month')['artist_names'].apply(lambda x: set.intersection(*x)).reset_index()
-    common_tracks = monthly_tracks.groupby('Month')['track_name'].apply(lambda x: set.intersection(*x)).reset_index()
-
-    common_artists.rename(columns={'artist_names': 'Common_Artists'}, inplace=True)
-    common_tracks.rename(columns={'track_name': 'Common_Tracks'}, inplace=True)
-
-    common_data = pd.merge(common_artists, common_tracks, on='Month')
-    common_data.to_csv(os.path.join(output_folder, "monthly_common_artists_tracks.csv"), index=False, encoding='utf-8-sig')
-
-    print("월별 국가 간 공통 아티스트 및 곡 분석 완료.")
-
-# 아티스트 또는 곡의 성장률 분석
-def analyze_growth_rate_of_artists_and_tracks(data, output_folder):
-    """
-    아티스트 또는 곡의 성장률을 분석합니다.
-    - 컬럼 구성:
-      * Country: 국가 코드
-      * Track Name: 곡 이름
-      * Artist Names: 아티스트 이름
-      * Date: 날짜 (주별)
-      * Streams: 주간 스트리밍 수
-      * Growth Rate: 스트리밍 성장률 (백분율)
-      * Trend Status: 성장 또는 감소 추세 상태
-    - 활용 방안:
-      * 성장하는 아티스트와 곡을 파악하여 적극적인 프로모션 기회를 모색
-      * 감소 추세를 보이는 곡의 원인 분석을 통해 개선 전략 수립
-      * 특정 기간 동안 스트리밍 데이터의 상승 및 하락 패턴을 이해하여 예측 모델에 활용
-    """
-    data['streams'] = data['streams'].fillna(0)
-    data = data.sort_values(by=['Country', 'artist_names', 'track_name', 'Date'])
-    data['Growth_Rate'] = data.groupby(['Country', 'artist_names', 'track_name'])['streams'].pct_change().fillna(0) * 100
-
-    def determine_trend_status(growth_rate):
-        if growth_rate > 5:
-            return "Growth"
-        elif growth_rate < -5:
-            return "Decline"
-        else:
-            return "Stable"
-
-    data['Trend_Status'] = data['Growth_Rate'].apply(determine_trend_status)
-
-    growth_analysis = data[['Country', 'artist_names', 'track_name', 'Date', 'streams', 'Growth_Rate', 'Trend_Status']]
-    growth_analysis.to_csv(os.path.join(output_folder, "growth_rate_analysis.csv"), index=False, encoding='utf-8-sig')
-
-    print("아티스트 또는 곡의 성장률 분석 완료.")
-
-# 인사이트 도출
-def generate_insights(output_folder):
-    """
-    모든 분석 결과를 종합하여 주요 인사이트를 도출합니다.
-    - 활용 방안:
-      * 의사결정자에게 유용한 데이터를 요약 제공
-      * 분석 결과를 통해 음악 소비 트렌드와 시장의 주요 특징 파악
-    """
+    # 4. 주요 인사이트 도출 및 저장
     insights = []
+    insights.append("국가별로 스트리밍이 가장 많았던 월:")
+    insights.append(f"결과 파일 경로: {max_stream_month_per_country_path}")
 
-    # 국가별 가장 스트리밍이 많은 월
-    max_streams_file = os.path.join(output_folder, "max_streams_by_month.csv")
-    if os.path.exists(max_streams_file):
-        max_streams = pd.read_csv(max_streams_file)
-        top_country = max_streams.loc[max_streams['Max_Streams'].idxmax()]
-        insights.append(f"스트리밍이 가장 많은 국가는 {top_country['Country']}이며, 가장 많이 스트리밍된 월은 {top_country['Month']}입니다.")
+    insights.append(f"\n전세계적으로 음악 소비가 가장 낮았던 달: {min_stream_month['Month']}")
+    insights.append(f"결과 파일 경로: {global_monthly_streams_path}")
 
-    # 전 세계적으로 스트리밍이 적은 달
-    low_streams_file = os.path.join(output_folder, "global_low_stream_month.csv")
-    if os.path.exists(low_streams_file):
-        low_streams = pd.read_csv(low_streams_file)
-        insights.append(f"전 세계적으로 스트리밍이 가장 낮은 달은 {low_streams['Month'].values[0]}입니다.")
+    insights.append(f"\n특정 국가에서만 인기 있는 가수 수: {len(unique_to_one_country)}명")
+    insights.append(f"결과 파일 경로: {unique_to_one_country_path}")
 
-    # 글로벌 인기 아티스트
-    global_artists_file = os.path.join(output_folder, "global_common_artists.csv")
-    if os.path.exists(global_artists_file):
-        global_artists = pd.read_csv(global_artists_file)
-        insights.append(f"글로벌 공통 인기 아티스트는 {', '.join(global_artists['Global_Artists'].head(5))} 등입니다.")
+    insights.append(f"\n전세계 모든 국가에서 인기 있는 공통 가수 수: {len(global_artists)}명")
+    insights.append(f"결과 파일 경로: {global_artists_path}")
 
-    # 인사이트 도출
-def generate_insights(output_folder):
-    """
-    모든 분석 결과를 종합하여 주요 인사이트를 도출합니다.
-    """
-    insights = []
+    insights_path = os.path.join(final_output_folder, "insights.txt")
+    with open(insights_path, "w", encoding='utf-8') as f:
+        f.write("\n".join(insights))
 
-    try:
-        max_streams_file = os.path.join(output_folder, "max_streams_by_month.csv")
-        if os.path.exists(max_streams_file):
-            max_streams = pd.read_csv(max_streams_file)
-            top_country = max_streams.loc[max_streams['Max_Streams'].idxmax()]
-            insights.append(f"스트리밍이 가장 많은 국가는 {top_country['Country']}이며, 가장 많이 스트리밍된 월은 {top_country['Month']}입니다.")
-
-        low_streams_file = os.path.join(output_folder, "global_low_stream_month.csv")
-        if os.path.exists(low_streams_file):
-            low_streams = pd.read_csv(low_streams_file)
-            insights.append(f"전 세계적으로 스트리밍이 가장 낮은 달은 {low_streams['Month'].values[0]}입니다.")
-
-        global_artists_file = os.path.join(output_folder, "global_common_artists.csv")
-        if os.path.exists(global_artists_file):
-            global_artists = pd.read_csv(global_artists_file)
-            insights.append(f"글로벌 공통 인기 아티스트는 {', '.join(global_artists['Global_Artists'].head(5))} 등입니다.")
-
-        with open(os.path.join(output_folder, "insights_summary.txt"), "w", encoding="utf-8-sig") as f:
-            for insight in insights:
-                f.write(insight + "\n")
-
-        print("인사이트 도출 완료. 주요 결과가 insights_summary.txt에 저장되었습니다.")
-    except Exception as e:
-        print(f"인사이트 생성 중 오류 발생: {e}")
+    print("\n주요 인사이트:")
+    print("\n".join(insights))
 
 if __name__ == "__main__":
     input_folder = "./spotify_data"
     intermediate_folder = "./country_data"
     final_output_folder = "./final_data"
+
     merge_by_country(input_folder, intermediate_folder, final_output_folder)
+    analyze_music_trends(final_output_folder)
