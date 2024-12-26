@@ -48,13 +48,21 @@ def visualize_country_stream_trends(max_stream_path, output_path):
     else:
         print(f"{max_stream_path} 파일이 존재하지 않습니다.")
 
-def visualize_global_trends_heatmap(data, output_path):
+def visualize_global_trends_heatmap(data, artist_country_path, output_path):
     """
     월별 인기 곡/아티스트의 스트리밍 수를 히트맵으로 시각화합니다.
     """
     pivot_data = data.pivot(index='Name', columns='Month', values='streams').fillna(0)
     top_items = pivot_data.sum(axis=1).nlargest(20).index  # 상위 20개만 선택
     filtered_data = pivot_data.loc[top_items]
+
+    # 아티스트 국가 데이터 추가
+    if os.path.exists(artist_country_path):
+        artist_country_df = pd.read_csv(artist_country_path)
+        artist_country_mapping = artist_country_df.set_index('Name')['Country'].to_dict()
+        filtered_data['Country'] = filtered_data.index.map(artist_country_mapping)
+        filtered_data.index = filtered_data.index + ' (' + filtered_data['Country'] + ')'
+        filtered_data = filtered_data.drop(columns=['Country'])
 
     # 월만 표시 (YYYY-MM 형식)
     filtered_data.columns = pd.to_datetime(filtered_data.columns).strftime('%Y-%m')
@@ -92,9 +100,11 @@ if __name__ == "__main__":
 
     # 글로벌 트렌드 히트맵
     combined_data_path = os.path.join(final_data_folder, "monthly_common_tracks_and_artists.csv")
+    artist_country_path = os.path.join(final_data_folder, "artist_countries.csv")
     if os.path.exists(combined_data_path):
         combined_data = pd.read_csv(combined_data_path)
         visualize_global_trends_heatmap(
             combined_data,
+            artist_country_path,
             os.path.join(insights_output_folder, "global_trends_heatmap_blue.png")
         )
